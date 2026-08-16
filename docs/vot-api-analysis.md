@@ -13,7 +13,7 @@ FreeTube Watch videoId / canonical URL
   -> separate HTMLAudioElement consumes resulting URL
 ```
 
-The upstream extension uses the reusable `@vot.js/core` client for the signed/provider protocol. Its extension orchestration has an extra YouTube-specific `AUDIO_REQUESTED` path: it downloads audio then posts it back through `requestVtransAudio`, then requests translation again. This is an integration risk, not a detail that can safely be omitted from a functioning PoC.
+The upstream extension uses the reusable `@vot.js/core` client for the signed/provider protocol. `@vot.js/shared` uses Web Crypto when available and dynamically imports Node crypto otherwise, so this library chain is compatible with Electron main process. Its extension orchestration has an extra YouTube-specific `AUDIO_REQUESTED` path. The provider itself can run VOT's documented no-media fallback (`fail-audio-js` followed by an empty audio notification) and then repeat the request; the 2026-08-16 smoke-test reached a finished result that way. Keep this behavior isolated in the adapter, time-bounded and abortable: it is backend-specific and can change.
 
 ## Relevant modules
 
@@ -26,7 +26,7 @@ The upstream extension uses the reusable `@vot.js/core` client for the signed/pr
 | High-level request/apply/cache/stale action checks | `src/videoHandler/modules/translationPlayback.ts` | Partly | Yes — retain the stale-result guard idea, not the extension playback/UI implementation. |
 | Audio source/proxy fallback | `src/videoHandler/modules/translationPlayback.ts` | Partly | Yes — test direct audio first, then use a tightly scoped main-process proxy only if needed. |
 | Playback / volume features | `src/videoHandler/modules/translationPlayback.ts`, `src/videoHandler/translationVolume.ts`, `src/videoHandler/volumeLink.ts` | Concept only | Yes — make a small FreeTube controller, not a transplant. |
-| Audio-download/upload fallback | `src/audioDownloader/*`, `src/core/translationHandler.ts` | Conditional | Yes — no browser-extension download/runtime; only implement after the simple metadata request is proven insufficient. |
+| `AUDIO_REQUESTED` fallback | `@vot.js/core/providers/yandex`, used by `src/core/translationHandler.ts` | Yes | Reuse through the VOT client adapter; do not bring over browser-only `src/audioDownloader/*` unless a future backend response proves it necessary. |
 | YouTube/site DOM discovery | `src/videoHandler/*`, `src/core/videoManager.ts` | No | No. FreeTube already owns id, metadata and video element. |
 | Extension bootstrap/UI/subtitles/localization | `src/bootstrap/*`, `src/extension/*`, `src/ui/*`, `src/subtitles/*` | No | No. |
 
@@ -36,9 +36,9 @@ The current VOT configuration identifies these hosts (values are configuration, 
 
 | Purpose | Configured endpoint/host | PoC treatment |
 | --- | --- | --- |
-| Primary Yandex Browser service | `https://api.browser.yandex.ru` | Access only through the VOT client/adapter; do not hand-recreate signing based on guesses. |
+| Primary Yandex Browser service | `https://api.browser.yandex.ru` | The direct smoke-test created a session but returned HTTP 402 for translation; keep as an optional authenticated provider, not PoC default. |
 | VOT backend | `https://vot.toil.cc/v1` | May be used by client/provider; permit only explicit routes. |
-| VOT proxy workers | `vot-worker.vtrans.eu.cc`, `vot-worker.eu.cc` | Fallback only; configurable allow-list. |
+| VOT proxy workers | `vot-worker.vtrans.eu.cc`, `vot-worker.eu.cc` | PoC default: the first host returned HTTP 200 for session and translation, then a finished audio result after the provider fallback/polling. Keep a narrow allow-list. |
 | Media proxy | `media-proxy.toil.cc/v1/proxy/m3u8` | Not a first-PoC dependency; required only for incompatible indirect media URLs. |
 | Optional detection / auth services | `rust-server-531j.onrender.com` | Out of scope unless the client returns an explicit account/detection requirement. |
 
@@ -59,6 +59,12 @@ FreeTube is AGPL-3.0-or-later. The current VOT repository LICENSE is MIT (copyri
 ## Network and security decision
 
 Renderer direct fetch is not approved as the production plan: it can fail CORS and may expose protocol-specific details. Start with a narrowly scoped Electron main-process HTTPS client behind one preload function, with an explicit host allow-list, method/schema validation, timeouts and `AbortSignal`/request-id cancellation. Do not disable CSP, `webSecurity`, or enable Node integration. Renderer plays the resulting remote audio URL normally; if audio CORS fails, add a narrowly scoped streaming/proxy solution after confirming headers/range support.
+
+The main-process test proves the signed protocol can execute without extension runtime and avoids renderer CORS for VOT API calls. It does not prove that the returned remote audio permits renderer playback or range requests; that is the next, separate media test.
+
+## Smoke-test evidence (2026-08-16)
+
+Using VOT's own public example YouTube ID, an isolated Node 22 process imported `@vot.js/ext/client` and `@vot.js/core/providers/votworker`. It created a session and requested English-to-Russian translation through `vot-worker.vtrans.eu.cc`; the worker returned `AUDIO_REQUESTED`, ETA 43 seconds, then polling returned `FINISHED` with an audio URL. Only endpoint path, HTTP status and boolean result fields were observed. No audio URL, response body, cookies, token or media file was stored.
 
 ## Architecture plan and risks
 

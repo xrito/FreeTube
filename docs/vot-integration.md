@@ -1,6 +1,6 @@
 # FreeTube VOT integration — architecture analysis
 
-Status: research only (no application source modified).
+Status: research complete; no FreeTube application source modified.
 
 ## FreeTube architecture
 
@@ -33,13 +33,15 @@ Watch UI -> player enable/disable -> PlaybackController -> audio + source video
 
 For the first proof, use YouTube video id from the Watch route, canonical URL `https://youtu.be/<videoId>`, source language metadata already loaded by the Watch view where reliable, and target `ru`.
 
+The VOT smoke-test on 2026-08-16 used the repository's public example ID and did not persist an audio URL, cookies, tokens or media. Direct `api.browser.yandex.ru` access created a session but returned HTTP 402 for the translation request. The VOT-configured worker `vot-worker.vtrans.eu.cc` returned HTTP 200 for both session creation and translation; its documented `AUDIO_REQUESTED` fallback plus abortable polling reached `FINISHED` and received an audio URL. Therefore the PoC must use a main-process adapter configured for the worker route, with direct Yandex access treated only as an optional, authenticated provider.
+
 ## Intended first-PoC FreeTube changes
 
 * `src/renderer/views/Watch/Watch.{vue,js}` — controls, request state, cancellation and route teardown.
 * `src/renderer/components/ft-shaka-video-player/ft-shaka-video-player.js` — instantiate/tear down the playback controller and expose narrow control methods.
 * `src/renderer/helpers/player/VoiceTranslationPlaybackController.js` — new media-only controller.
 * `src/renderer/services/voiceTranslation/*` — new UI-facing service/types/errors.
-* `src/main/index.js`, `src/preload/{main,interface}.js`, `src/preload/preload-interface.d.ts` — only if renderer requests are blocked by CORS; expose a single typed VOT IPC operation.
+* `src/main/index.js`, `src/preload/{main,interface}.js`, `src/preload/preload-interface.d.ts` — expose one typed VOT IPC operation. Main process is the chosen security boundary, not a CORS workaround.
 * `src/renderer/components/PlayerSettings/*`, store defaults, and affected locale JSON — deferred until the media proof succeeds.
 
 ## Development/build verification
