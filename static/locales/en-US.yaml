@@ -484,6 +484,8 @@ Settings:
       Voice Mode: Voice mode
       Standard Voices: Standard voices
       Live Voices: Live voices
+      Original Volume: Original audio
+      Translation Volume: Translation
       Token: Yandex OAuth token
       Save Token: Save token
       Remove Token: Remove token

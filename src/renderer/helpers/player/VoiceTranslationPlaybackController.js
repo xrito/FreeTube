@@ -1,17 +1,27 @@
 const DRIFT_THRESHOLD_SECONDS = 0.25
 const DRIFT_CHECK_INTERVAL_MS = 500
+const DEFAULT_ORIGINAL_VOLUME = 15
+const DEFAULT_TRANSLATION_VOLUME = 100
+
+function normalizeVolume(volume, fallback) {
+  const value = Number.isFinite(volume) ? volume : fallback
+  return Math.min(Math.max(value, 0), 100) / 100
+}
 
 export class VoiceTranslationPlaybackController {
   /**
    * @param {HTMLVideoElement} videoElement
    * @param {() => void} onAudioError
+   * @param {{ originalVolume?: number, translationVolume?: number }} [volumes]
    */
-  constructor(videoElement, onAudioError) {
+  constructor(videoElement, onAudioError, volumes = {}) {
     this.videoElement = videoElement
     this.onAudioError = onAudioError
     this.audioElement = new Audio()
     this.audioElement.preload = 'auto'
-    this.audioElement.volume = 1
+    this.originalVolume = normalizeVolume(volumes.originalVolume, DEFAULT_ORIGINAL_VOLUME)
+    this.translationVolume = normalizeVolume(volumes.translationVolume, DEFAULT_TRANSLATION_VOLUME)
+    this.audioElement.volume = this.translationVolume
     this.originalVideoVolume = null
     this.originalVideoMuted = null
     this.driftCheckInterval = null
@@ -52,6 +62,20 @@ export class VoiceTranslationPlaybackController {
     this.audioElement.removeAttribute('src')
     this.audioElement.load()
     this.restoreOriginalVolume()
+  }
+
+  /**
+   * @param {number} originalVolume
+   * @param {number} translationVolume
+   */
+  setVolumes(originalVolume, translationVolume) {
+    this.originalVolume = normalizeVolume(originalVolume, DEFAULT_ORIGINAL_VOLUME)
+    this.translationVolume = normalizeVolume(translationVolume, DEFAULT_TRANSLATION_VOLUME)
+    this.audioElement.volume = this.translationVolume
+
+    if (this.originalVideoVolume !== null) {
+      this.videoElement.volume = this.originalVolume
+    }
   }
 
   handleVideoPlay() {
@@ -153,7 +177,7 @@ export class VoiceTranslationPlaybackController {
 
     this.originalVideoVolume = this.videoElement.volume
     this.originalVideoMuted = this.videoElement.muted
-    this.videoElement.volume = 0.15
+    this.videoElement.volume = this.originalVolume
   }
 
   restoreOriginalVolume() {

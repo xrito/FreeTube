@@ -402,6 +402,8 @@ Settings:
       Voice Mode: Режим озвучки
       Standard Voices: Обычные голоса
       Live Voices: Живые голоса
+      Original Volume: Оригинальный звук
+      Translation Volume: Перевод
       Token: Yandex OAuth token
       Save Token: Сохранить token
       Remove Token: Удалить token

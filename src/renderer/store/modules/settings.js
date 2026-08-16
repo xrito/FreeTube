@@ -292,6 +292,8 @@ const state = {
   useRssFeeds: false,
   useSponsorBlock: false,
   videoVolumeMouseScroll: false,
+  voiceTranslationOriginalVolume: 15,
+  voiceTranslationTranslationVolume: 100,
   voiceTranslationVoiceMode: 'standard',
   videoPlaybackRateMouseScroll: false,
   videoSkipMouseScroll: false,
