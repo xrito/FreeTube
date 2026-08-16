@@ -40,6 +40,7 @@ import {
 } from '../../helpers/api/invidious'
 import { sortCaptions } from '../../helpers/player/utils'
 import { MANIFEST_TYPE_SABR } from '../../helpers/player/SabrManifestParser'
+import { cancelVoiceTranslation, translateVoiceVideo } from '../../services/voiceTranslation'
 import { useI18n } from 'vue-i18n'
 
 /**
@@ -176,6 +177,11 @@ export default defineComponent({
       /** @type {Date|null} */
       streamingDataExpiryDate: null,
       currentPlaybackRate: null,
+      voiceTranslationState: 'idle',
+      voiceTranslationError: '',
+      voiceTranslationRequestId: 0,
+      voiceTranslationRequestVideoId: null,
+      voiceTranslationStatusTimeout: null,
     }
   },
   computed: {
@@ -330,6 +336,32 @@ export default defineComponent({
         return `data:text/vtt,${encodeURIComponent(vttText)}`
       } else {
         return ''
+      }
+    },
+    voiceTranslationAvailable() {
+      return process.env.IS_ELECTRON
+    },
+    voiceTranslationTitle() {
+      return 'Voice translation'
+    },
+    voiceTranslationBusy() {
+      return this.voiceTranslationState === 'preparing' || this.voiceTranslationState === 'generating' ||
+        this.voiceTranslationState === 'loading-audio'
+    },
+    voiceTranslationButtonLabel() {
+      switch (this.voiceTranslationState) {
+        case 'preparing':
+          return 'Подготовка...'
+        case 'generating':
+          return 'Перевод создаётся...'
+        case 'loading-audio':
+          return 'Загрузка аудио...'
+        case 'enabled':
+          return 'Выключить перевод'
+        case 'error':
+          return 'Ошибка перевода'
+        default:
+          return 'Перевести на русский'
       }
     }
   },
@@ -1549,8 +1581,101 @@ export default defineComponent({
     },
 
     handleRouteChange: function () {
+      this.stopVoiceTranslation()
       this.abortAutoplayCountdown(true)
       this.handleWatchProgressAutoSave()
+    },
+
+    async toggleVoiceTranslation() {
+      if (this.voiceTranslationBusy) {
+        return
+      }
+
+      if (this.voiceTranslationState === 'enabled') {
+        this.stopVoiceTranslation()
+        return
+      }
+
+      await this.startVoiceTranslation()
+    },
+
+    async startVoiceTranslation() {
+      const player = this.$refs.player
+      if (!player?.hasLoaded || !this.voiceTranslationAvailable) {
+        return
+      }
+
+      const requestId = this.voiceTranslationRequestId + 1
+      const videoId = this.videoId
+      this.voiceTranslationRequestId = requestId
+      this.voiceTranslationRequestVideoId = videoId
+      this.voiceTranslationError = ''
+      this.voiceTranslationState = 'preparing'
+      clearTimeout(this.voiceTranslationStatusTimeout)
+      this.voiceTranslationStatusTimeout = setTimeout(() => {
+        if (this.voiceTranslationRequestId === requestId) {
+          this.voiceTranslationState = 'generating'
+        }
+      }, 300)
+
+      try {
+        const translation = await translateVoiceVideo({
+          videoId,
+          videoUrl: `https://youtu.be/${videoId}`,
+          duration: this.videoLengthSeconds,
+          sourceLanguage: 'en',
+          targetLanguage: 'ru'
+        })
+
+        if (this.voiceTranslationRequestId !== requestId || this.videoId !== videoId || !this.$refs.player) {
+          return
+        }
+
+        this.voiceTranslationState = 'loading-audio'
+        await this.$refs.player.enableVoiceTranslation(translation)
+
+        if (this.voiceTranslationRequestId === requestId && this.videoId === videoId) {
+          this.voiceTranslationState = 'enabled'
+          this.voiceTranslationRequestVideoId = null
+        }
+      } catch (error) {
+        if (this.voiceTranslationRequestId !== requestId) {
+          return
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[VOT] Voice translation failed', error)
+        }
+
+        this.voiceTranslationState = 'error'
+        this.voiceTranslationError = 'Не удалось получить голосовой перевод этого видео.'
+        this.voiceTranslationRequestVideoId = null
+      } finally {
+        clearTimeout(this.voiceTranslationStatusTimeout)
+        this.voiceTranslationStatusTimeout = null
+      }
+    },
+
+    stopVoiceTranslation: function () {
+      const activeVideoId = this.voiceTranslationRequestVideoId
+      this.voiceTranslationRequestId += 1
+      this.voiceTranslationRequestVideoId = null
+      clearTimeout(this.voiceTranslationStatusTimeout)
+      this.voiceTranslationStatusTimeout = null
+
+      if (activeVideoId) {
+        cancelVoiceTranslation(activeVideoId).catch(() => {})
+      }
+
+      this.$refs.player?.disableVoiceTranslation()
+      this.voiceTranslationState = 'idle'
+      this.voiceTranslationError = ''
+    },
+
+    handleVoiceTranslationAudioError: function () {
+      this.$refs.player?.disableVoiceTranslation()
+      this.voiceTranslationState = 'error'
+      this.voiceTranslationError = 'Не удалось загрузить голосовую дорожку перевода.'
     },
 
     /**
