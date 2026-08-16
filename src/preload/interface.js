@@ -127,6 +127,27 @@ export default {
     return ipcRenderer.invoke(IpcChannels.GENERATE_PO_TOKEN, videoId, context, initialAttestationData, ytConfig)
   },
 
+  /**
+   * @param {{
+   *   videoId: string,
+   *   videoUrl: string,
+   *   duration?: number,
+   *   sourceLanguage?: string,
+   *   targetLanguage: string
+   * }} request
+   */
+  translateVoiceVideo: (request) => {
+    return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_TRANSLATE, request)
+  },
+
+  /**
+   * @param {string} videoId
+   * @returns {Promise<boolean>}
+   */
+  cancelVoiceTranslation: (videoId) => {
+    return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_CANCEL, videoId)
+  },
+
   chooseDefaultFolder: () => {
     ipcRenderer.send(IpcChannels.CHOOSE_DEFAULT_FOLDER)
   },

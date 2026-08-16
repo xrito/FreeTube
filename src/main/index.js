@@ -30,6 +30,7 @@ import packageDetails from '../../package.json'
 import { handleOpenInExternalPlayer } from './externalPlayer'
 import { generatePoToken } from './poTokenGenerator'
 import { isFreeTubeUrl } from './utils'
+import { VoiceTranslationError, VotTranslationService } from './voiceTranslation/VotTranslationService'
 
 const brotliDecompressAsync = promisify(brotliDecompress)
 
@@ -1310,6 +1311,59 @@ function runApp() {
     if (isFreeTubeUrl(event.senderFrame.url)) {
       return generatePoToken(videoId, context, initialAttestationData, ytConfig, proxyUrl)
     }
+  })
+
+  const votTranslationService = new VotTranslationService()
+  /** @type {Map<number, { videoId: string, controller: AbortController }>} */
+  const activeVoiceTranslations = new Map()
+
+  ipcMain.handle(IpcChannels.VOICE_TRANSLATION_TRANSLATE, async (event, request) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) {
+      return { ok: false, error: { code: 'forbidden', message: 'Voice translation request was rejected' } }
+    }
+
+    const senderId = event.sender.id
+    const previousTranslation = activeVoiceTranslations.get(senderId)
+    previousTranslation?.controller.abort()
+
+    const controller = new AbortController()
+    const videoId = typeof request?.videoId === 'string' ? request.videoId : ''
+    const activeTranslation = { videoId, controller }
+    activeVoiceTranslations.set(senderId, activeTranslation)
+
+    try {
+      const result = await votTranslationService.translateVideo(request, controller.signal)
+      return { ok: true, result }
+    } catch (error) {
+      if (controller.signal.aborted || error?.name === 'AbortError') {
+        return { ok: false, aborted: true }
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[VOT] Voice translation request failed', error)
+      }
+
+      const code = error instanceof VoiceTranslationError ? error.code : 'network'
+      return { ok: false, error: { code, message: 'Unable to get voice translation for this video' } }
+    } finally {
+      if (activeVoiceTranslations.get(senderId) === activeTranslation) {
+        activeVoiceTranslations.delete(senderId)
+      }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.VOICE_TRANSLATION_CANCEL, (event, videoId) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) {
+      return false
+    }
+
+    const activeTranslation = activeVoiceTranslations.get(event.sender.id)
+    if (!activeTranslation || activeTranslation.videoId !== videoId) {
+      return false
+    }
+
+    activeTranslation.controller.abort()
+    return true
   })
 
   ipcMain.on(IpcChannels.ENABLE_PROXY, (event, url) => {
