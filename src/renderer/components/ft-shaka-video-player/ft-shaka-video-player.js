@@ -31,6 +31,7 @@ import {
 } from '../../helpers/utils'
 import { MANIFEST_TYPE_SABR } from '../../helpers/player/SabrManifestParser'
 import { setupSabrScheme } from '../../helpers/player/SabrSchemePlugin'
+import { VoiceTranslationPlaybackController } from '../../helpers/player/VoiceTranslationPlaybackController'
 
 /** @typedef {import('../../helpers/sponsorblock').SponsorBlockCategory} SponsorBlockCategory */
 
@@ -176,6 +177,7 @@ export default defineComponent({
     'toggle-autoplay',
     'toggle-theatre-mode',
     'playback-rate-updated',
+    'voice-translation-error',
     'skip-to-next',
     'skip-to-prev',
     'player-reload-requested',
@@ -196,6 +198,9 @@ export default defineComponent({
 
     /** @type {import('vue').Ref<HTMLVideoElement | null>} */
     const video = ref(null)
+
+    /** @type {VoiceTranslationPlaybackController|null} */
+    let voiceTranslationPlaybackController = null
 
     /** @type {import('vue').Ref<HTMLCanvasElement | null>} */
     const vrCanvas = ref(null)
@@ -2856,6 +2861,7 @@ export default defineComponent({
       })
     })
     onUnmounted(() => {
+      disableVoiceTranslation()
       initLoadWaitTimeToastAC.abort()
     })
 
@@ -3272,6 +3278,27 @@ export default defineComponent({
     }
 
     /**
+     * @param {{ audioUrl: string }} translation
+     */
+    async function enableVoiceTranslation(translation) {
+      if (!video.value) {
+        throw new Error('Video element is not ready')
+      }
+
+      disableVoiceTranslation()
+      voiceTranslationPlaybackController = new VoiceTranslationPlaybackController(
+        video.value,
+        () => emit('voice-translation-error')
+      )
+      await voiceTranslationPlaybackController.enable(translation.audioUrl)
+    }
+
+    function disableVoiceTranslation() {
+      voiceTranslationPlaybackController?.disable()
+      voiceTranslationPlaybackController = null
+    }
+
+    /**
      * Vue's lifecycle hooks are synchonous, so if we destroy the player in {@linkcode onBeforeUnmount},
      * it won't be finished in time, as the player destruction is asynchronous.
      * To workaround that we destroy the player first and wait for it to finish before we unmount this component.
@@ -3280,6 +3307,7 @@ export default defineComponent({
      */
     async function destroyPlayer() {
       ignoreErrors = true
+      disableVoiceTranslation()
 
       let uiState = { startNextVideoInFullscreen: false, startNextVideoInFullwindow: false, startNextVideoInPip: false }
 
@@ -3328,6 +3356,8 @@ export default defineComponent({
       pause,
       getCurrentTime,
       setCurrentTime,
+      enableVoiceTranslation,
+      disableVoiceTranslation,
       destroyPlayer
     })
 
