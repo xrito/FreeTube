@@ -1,309 +1,311 @@
 <template>
-  <FtSettingsSection
-    :title="t('Settings.Player Settings.Player Settings')"
-  >
-    <div class="switchColumnGrid">
-      <div class="switchColumn">
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Proxy Videos Through Invidious')"
-          :compact="true"
-          :default-value="showProxyVideosAsDisabled ? false : proxyVideos"
-          :disabled="showProxyVideosAsDisabled"
-          :tooltip="t('Tooltips.Player Settings.Proxy Videos Through Invidious')"
-          @change="updateProxyVideos"
-        />
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Turn on Subtitles by Default')"
-          :compact="true"
-          :default-value="enableSubtitlesByDefault"
-          @change="updateEnableSubtitlesByDefault"
-        />
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Scroll Volume Over Video Player')"
-          :compact="true"
-          :disabled="videoSkipMouseScroll"
-          :default-value="videoVolumeMouseScroll"
-          @change="updateVideoVolumeMouseScroll"
-        />
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Scroll Playback Rate Over Video Player')"
-          :compact="true"
-          :default-value="videoPlaybackRateMouseScroll"
-          :tooltip="t('Tooltips.Player Settings.Scroll Playback Rate Over Video Player')"
-          @change="updateVideoPlaybackRateMouseScroll"
-        />
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Skip by Scrolling Over Video Player')"
-          :compact="true"
-          :disabled="videoVolumeMouseScroll"
-          :default-value="videoSkipMouseScroll"
-          :tooltip="t('Tooltips.Player Settings.Skip by Scrolling Over Video Player')"
-          @change="updateVideoSkipMouseScroll"
-        />
+  <div>
+    <FtSettingsSection
+      :title="t('Settings.Player Settings.Player Settings')"
+    >
+      <div class="switchColumnGrid">
+        <div class="switchColumn">
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Proxy Videos Through Invidious')"
+            :compact="true"
+            :default-value="showProxyVideosAsDisabled ? false : proxyVideos"
+            :disabled="showProxyVideosAsDisabled"
+            :tooltip="t('Tooltips.Player Settings.Proxy Videos Through Invidious')"
+            @change="updateProxyVideos"
+          />
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Turn on Subtitles by Default')"
+            :compact="true"
+            :default-value="enableSubtitlesByDefault"
+            @change="updateEnableSubtitlesByDefault"
+          />
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Scroll Volume Over Video Player')"
+            :compact="true"
+            :disabled="videoSkipMouseScroll"
+            :default-value="videoVolumeMouseScroll"
+            @change="updateVideoVolumeMouseScroll"
+          />
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Scroll Playback Rate Over Video Player')"
+            :compact="true"
+            :default-value="videoPlaybackRateMouseScroll"
+            :tooltip="t('Tooltips.Player Settings.Scroll Playback Rate Over Video Player')"
+            @change="updateVideoPlaybackRateMouseScroll"
+          />
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Skip by Scrolling Over Video Player')"
+            :compact="true"
+            :disabled="videoVolumeMouseScroll"
+            :default-value="videoSkipMouseScroll"
+            :tooltip="t('Tooltips.Player Settings.Skip by Scrolling Over Video Player')"
+            @change="updateVideoSkipMouseScroll"
+          />
+        </div>
+        <div class="switchColumn">
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Play Next Video')"
+            :compact="true"
+            :disabled="hideRecommendedVideos"
+            :default-value="playNextVideo"
+            @change="updatePlayNextVideo"
+          />
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Autoplay Playlists')"
+            :compact="true"
+            :default-value="autoplayPlaylists"
+            @change="updateAutoplayPlaylists"
+          />
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Autoplay Videos')"
+            :compact="true"
+            :default-value="autoplayVideos"
+            @change="updateAutoplayVideos"
+          />
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Display Play Button In Video Player')"
+            :compact="true"
+            :default-value="displayVideoPlayButton"
+            @change="updateDisplayVideoPlayButton"
+          />
+          <FtToggleSwitch
+            :label="t('Settings.Player Settings.Enter Fullscreen on Display Rotate')"
+            :compact="true"
+            :default-value="enterFullscreenOnDisplayRotate"
+            @change="updateEnterFullscreenOnDisplayRotate"
+          />
+        </div>
       </div>
-      <div class="switchColumn">
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Play Next Video')"
-          :compact="true"
-          :disabled="hideRecommendedVideos"
-          :default-value="playNextVideo"
-          @change="updatePlayNextVideo"
-        />
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Autoplay Playlists')"
-          :compact="true"
-          :default-value="autoplayPlaylists"
-          @change="updateAutoplayPlaylists"
-        />
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Autoplay Videos')"
-          :compact="true"
-          :default-value="autoplayVideos"
-          @change="updateAutoplayVideos"
-        />
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Display Play Button In Video Player')"
-          :compact="true"
-          :default-value="displayVideoPlayButton"
-          @change="updateDisplayVideoPlayButton"
-        />
-        <FtToggleSwitch
-          :label="t('Settings.Player Settings.Enter Fullscreen on Display Rotate')"
-          :compact="true"
-          :default-value="enterFullscreenOnDisplayRotate"
-          @change="updateEnterFullscreenOnDisplayRotate"
-        />
-      </div>
-    </div>
-    <FtFlexBox>
-      <FtSelect
-        :placeholder="t('Settings.Player Settings.Default Viewing Mode.Default Viewing Mode')"
-        :value="defaultViewingMode"
-        :select-names="viewingModeNames"
-        :select-values="viewingModeValues"
-        :tooltip="t('Settings.Player Settings.Default Viewing Mode.Tooltip')"
-        :icon="['fas', 'expand']"
-        @change="updateDefaultViewingMode"
-      />
-      <FtSelect
-        :placeholder="t('Settings.Player Settings.Default Video Format.Default Video Format')"
-        :value="defaultVideoFormat"
-        :select-names="formatNames"
-        :select-values="FORMAT_VALUES"
-        :tooltip="t('Tooltips.Player Settings.Default Video Format')"
-        :icon="['fas', 'file-video']"
-        @change="updateDefaultVideoFormat"
-      />
-      <FtSelect
-        :placeholder="t('Settings.Player Settings.Default Quality.Default Quality')"
-        :value="defaultQuality"
-        :select-names="qualityNames"
-        :select-values="QUALITY_VALUES"
-        :icon="['fas', 'photo-film']"
-        @change="updateDefaultQuality"
-      />
-      <FtSelect
-        :placeholder="t('Settings.Player Settings.Video Playback Rate Interval')"
-        :value="videoPlaybackRateIntervalString"
-        :select-names="PLAYBACK_RATE_INTERVAL_VALUES"
-        :select-values="PLAYBACK_RATE_INTERVAL_VALUES"
-        :icon="['fas', 'gauge']"
-        @change="updateVideoPlaybackRateInterval"
-      />
-    </FtFlexBox>
-    <FtFlexBox>
-      <FtSlider
-        :label="t('Settings.Player Settings.Next Video Interval')"
-        :default-value="defaultInterval"
-        :min-value="0"
-        :max-value="60"
-        :step="1"
-        value-extension="s"
-        @change="updateDefaultInterval"
-      />
-      <FtSlider
-        :label="t('Settings.Player Settings.Autoplay Interruption Timer')"
-        :default-value="defaultAutoplayInterruptionIntervalHours"
-        :min-value="1"
-        :max-value="12"
-        :step="1"
-        value-extension="h"
-        @change="updateDefaultAutoplayInterruptionIntervalHours"
-      />
-      <FtSlider
-        :label="t('Settings.Player Settings.Fast-Forward / Rewind Interval')"
-        :default-value="defaultSkipInterval"
-        :min-value="1"
-        :max-value="70"
-        :step="1"
-        value-extension="s"
-        @change="updateDefaultSkipInterval"
-      />
-      <FtSlider
-        :label="t('Settings.Player Settings.Default Volume')"
-        :default-value="defaultVolume"
-        :min-value="0"
-        :max-value="100"
-        :step="1"
-        value-extension="%"
-        @change="updateDefaultVolume"
-      />
-      <FtSlider
-        :label="t('Settings.Player Settings.Default Playback Rate')"
-        :default-value="defaultPlayback"
-        :min-value="videoPlaybackRateInterval"
-        :max-value="maxVideoPlaybackRate"
-        :step="videoPlaybackRateInterval"
-        value-extension="x"
-        @change="updateDefaultPlayback"
-      />
-      <FtSlider
-        :label="t('Settings.Player Settings.Max Video Playback Rate')"
-        :default-value="maxVideoPlaybackRate"
-        :min-value="2"
-        :max-value="10"
-        :step="1"
-        value-extension="x"
-        @change="updateMaxVideoPlaybackRate"
-      />
-    </FtFlexBox>
-    <br>
-    <FtFlexBox>
-      <FtToggleSwitch
-        :label="t('Settings.Player Settings.Screenshot.Enable')"
-        :default-value="enableScreenshot"
-        @change="updateEnableScreenshot"
-      />
-    </FtFlexBox>
-    <div v-if="enableScreenshot">
       <FtFlexBox>
         <FtSelect
-          :placeholder="t('Settings.Player Settings.Screenshot.Mode')"
-          :value="screenshotMode"
-          :select-names="screenshotModeNames"
-          :select-values="screenshotModeValues"
+          :placeholder="t('Settings.Player Settings.Default Viewing Mode.Default Viewing Mode')"
+          :value="defaultViewingMode"
+          :select-names="viewingModeNames"
+          :select-values="viewingModeValues"
+          :tooltip="t('Settings.Player Settings.Default Viewing Mode.Tooltip')"
           :icon="['fas', 'expand']"
-          @change="handleUpdateScreenshotMode"
+          @change="updateDefaultViewingMode"
+        />
+        <FtSelect
+          :placeholder="t('Settings.Player Settings.Default Video Format.Default Video Format')"
+          :value="defaultVideoFormat"
+          :select-names="formatNames"
+          :select-values="FORMAT_VALUES"
+          :tooltip="t('Tooltips.Player Settings.Default Video Format')"
+          :icon="['fas', 'file-video']"
+          @change="updateDefaultVideoFormat"
+        />
+        <FtSelect
+          :placeholder="t('Settings.Player Settings.Default Quality.Default Quality')"
+          :value="defaultQuality"
+          :select-names="qualityNames"
+          :select-values="QUALITY_VALUES"
+          :icon="['fas', 'photo-film']"
+          @change="updateDefaultQuality"
+        />
+        <FtSelect
+          :placeholder="t('Settings.Player Settings.Video Playback Rate Interval')"
+          :value="videoPlaybackRateIntervalString"
+          :select-names="PLAYBACK_RATE_INTERVAL_VALUES"
+          :select-values="PLAYBACK_RATE_INTERVAL_VALUES"
+          :icon="['fas', 'gauge']"
+          @change="updateVideoPlaybackRateInterval"
         />
       </FtFlexBox>
-      <FtFlexBox v-if="screenshotMode !== 'clipboard'">
-        <FtSelect
-          :placeholder="t('Settings.Player Settings.Screenshot.Format Label')"
-          :value="screenshotFormat"
-          :select-names="SCREENSHOT_FORMAT_NAMES"
-          :select-values="SCREENSHOT_FORMAT_VALUES"
-          :icon="['fas', 'file-image']"
-          @change="handleUpdateScreenshotFormat"
+      <FtFlexBox>
+        <FtSlider
+          :label="t('Settings.Player Settings.Next Video Interval')"
+          :default-value="defaultInterval"
+          :min-value="0"
+          :max-value="60"
+          :step="1"
+          value-extension="s"
+          @change="updateDefaultInterval"
         />
         <FtSlider
-          :label="t('Settings.Player Settings.Screenshot.Quality Label')"
-          :default-value="screenshotQuality"
+          :label="t('Settings.Player Settings.Autoplay Interruption Timer')"
+          :default-value="defaultAutoplayInterruptionIntervalHours"
+          :min-value="1"
+          :max-value="12"
+          :step="1"
+          value-extension="h"
+          @change="updateDefaultAutoplayInterruptionIntervalHours"
+        />
+        <FtSlider
+          :label="t('Settings.Player Settings.Fast-Forward / Rewind Interval')"
+          :default-value="defaultSkipInterval"
+          :min-value="1"
+          :max-value="70"
+          :step="1"
+          value-extension="s"
+          @change="updateDefaultSkipInterval"
+        />
+        <FtSlider
+          :label="t('Settings.Player Settings.Default Volume')"
+          :default-value="defaultVolume"
           :min-value="0"
           :max-value="100"
           :step="1"
           value-extension="%"
-          :disabled="screenshotFormat === 'png'"
-          @change="updateScreenshotQuality"
+          @change="updateDefaultVolume"
         />
-      </FtFlexBox>
-      <FtFlexBox
-        v-if="USING_ELECTRON && screenshotMode === 'default_folder'"
-        class="screenshotFolderContainer"
-      >
-        <p class="screenshotFolderLabel">
-          {{ t('Settings.Player Settings.Screenshot.Folder Label') }}
-        </p>
-        <FtInput
-          class="screenshotFolderPath"
-          :placeholder="screenshotFolder"
-          :show-action-button="false"
-          :show-label="false"
-          :disabled="true"
+        <FtSlider
+          :label="t('Settings.Player Settings.Default Playback Rate')"
+          :default-value="defaultPlayback"
+          :min-value="videoPlaybackRateInterval"
+          :max-value="maxVideoPlaybackRate"
+          :step="videoPlaybackRateInterval"
+          value-extension="x"
+          @change="updateDefaultPlayback"
         />
-        <FtButton
-          :label="t('Settings.Player Settings.Screenshot.Folder Button')"
-          class="screenshotFolderButton"
-          @click="chooseScreenshotFolder"
-        />
-      </FtFlexBox>
-      <FtFlexBox
-        v-if="screenshotMode !== 'clipboard'"
-        class="screenshotFolderContainer"
-      >
-        <p class="screenshotFilenamePatternTitle">
-          {{ t('Settings.Player Settings.Screenshot.File Name Label') }}
-          <FtTooltip
-            class="selectTooltip"
-            position="bottom"
-            :tooltip="t('Settings.Player Settings.Screenshot.File Name Tooltip')"
-          />
-        </p>
-        <FtInput
-          class="screenshotFilenamePatternInput"
-          placeholder=""
-          :value="screenshotFilenamePattern"
-          :show-action-button="false"
-          :show-label="false"
-          @input="handleScreenshotFilenamePatternChanged"
-        />
-        <FtInput
-          class="screenshotFilenamePatternExample"
-          :placeholder="screenshotFilenameExample"
-          :show-action-button="false"
-          :show-label="false"
-          :disabled="true"
+        <FtSlider
+          :label="t('Settings.Player Settings.Max Video Playback Rate')"
+          :default-value="maxVideoPlaybackRate"
+          :min-value="2"
+          :max-value="10"
+          :step="1"
+          value-extension="x"
+          @change="updateMaxVideoPlaybackRate"
         />
       </FtFlexBox>
       <br>
-    </div>
-  </FtSettingsSection>
-  <FtSettingsSection
-    v-if="USING_ELECTRON"
-    :title="t('Settings.Player Settings.Voice Translation.Title')"
-  >
-    <FtFlexBox>
-      <FtSelect
-        :placeholder="t('Settings.Player Settings.Voice Translation.Voice Mode')"
-        :value="voiceTranslationVoiceMode"
-        :select-names="voiceTranslationVoiceModeNames"
-        :select-values="VOICE_TRANSLATION_VOICE_MODE_VALUES"
-        @change="updateVoiceTranslationVoiceMode"
-      />
-    </FtFlexBox>
-    <p>
-      {{ t('Settings.Player Settings.Voice Translation.Token Hint') }}
-    </p>
-    <FtFlexBox>
-      <FtInput
-        input-type="password"
-        :placeholder="t('Settings.Player Settings.Voice Translation.Token')"
-        :value="yandexOAuthToken"
-        :show-action-button="false"
-        :show-label="true"
-        :label="t('Settings.Player Settings.Voice Translation.Token')"
-        @input="yandexOAuthToken = $event"
-      />
-      <FtButton
-        :label="t('Settings.Player Settings.Voice Translation.Save Token')"
-        :disabled="!yandexOAuthToken || !yandexCredentialStorageAvailable"
-        @click="saveYandexOAuthToken"
-      />
-      <FtButton
-        :label="t('Settings.Player Settings.Voice Translation.Remove Token')"
-        :disabled="!hasYandexOAuthToken"
-        @click="removeYandexOAuthToken"
-      />
-    </FtFlexBox>
-    <p v-if="yandexOAuthTokenError">
-      {{ yandexOAuthTokenError }}
-    </p>
-    <p v-else-if="hasYandexOAuthToken">
-      {{ t('Settings.Player Settings.Voice Translation.Token Saved') }}
-    </p>
-    <p v-else-if="!yandexCredentialStorageAvailable">
-      {{ t('Settings.Player Settings.Voice Translation.Storage Unavailable') }}
-    </p>
-  </FtSettingsSection>
+      <FtFlexBox>
+        <FtToggleSwitch
+          :label="t('Settings.Player Settings.Screenshot.Enable')"
+          :default-value="enableScreenshot"
+          @change="updateEnableScreenshot"
+        />
+      </FtFlexBox>
+      <div v-if="enableScreenshot">
+        <FtFlexBox>
+          <FtSelect
+            :placeholder="t('Settings.Player Settings.Screenshot.Mode')"
+            :value="screenshotMode"
+            :select-names="screenshotModeNames"
+            :select-values="screenshotModeValues"
+            :icon="['fas', 'expand']"
+            @change="handleUpdateScreenshotMode"
+          />
+        </FtFlexBox>
+        <FtFlexBox v-if="screenshotMode !== 'clipboard'">
+          <FtSelect
+            :placeholder="t('Settings.Player Settings.Screenshot.Format Label')"
+            :value="screenshotFormat"
+            :select-names="SCREENSHOT_FORMAT_NAMES"
+            :select-values="SCREENSHOT_FORMAT_VALUES"
+            :icon="['fas', 'file-image']"
+            @change="handleUpdateScreenshotFormat"
+          />
+          <FtSlider
+            :label="t('Settings.Player Settings.Screenshot.Quality Label')"
+            :default-value="screenshotQuality"
+            :min-value="0"
+            :max-value="100"
+            :step="1"
+            value-extension="%"
+            :disabled="screenshotFormat === 'png'"
+            @change="updateScreenshotQuality"
+          />
+        </FtFlexBox>
+        <FtFlexBox
+          v-if="USING_ELECTRON && screenshotMode === 'default_folder'"
+          class="screenshotFolderContainer"
+        >
+          <p class="screenshotFolderLabel">
+            {{ t('Settings.Player Settings.Screenshot.Folder Label') }}
+          </p>
+          <FtInput
+            class="screenshotFolderPath"
+            :placeholder="screenshotFolder"
+            :show-action-button="false"
+            :show-label="false"
+            :disabled="true"
+          />
+          <FtButton
+            :label="t('Settings.Player Settings.Screenshot.Folder Button')"
+            class="screenshotFolderButton"
+            @click="chooseScreenshotFolder"
+          />
+        </FtFlexBox>
+        <FtFlexBox
+          v-if="screenshotMode !== 'clipboard'"
+          class="screenshotFolderContainer"
+        >
+          <p class="screenshotFilenamePatternTitle">
+            {{ t('Settings.Player Settings.Screenshot.File Name Label') }}
+            <FtTooltip
+              class="selectTooltip"
+              position="bottom"
+              :tooltip="t('Settings.Player Settings.Screenshot.File Name Tooltip')"
+            />
+          </p>
+          <FtInput
+            class="screenshotFilenamePatternInput"
+            placeholder=""
+            :value="screenshotFilenamePattern"
+            :show-action-button="false"
+            :show-label="false"
+            @input="handleScreenshotFilenamePatternChanged"
+          />
+          <FtInput
+            class="screenshotFilenamePatternExample"
+            :placeholder="screenshotFilenameExample"
+            :show-action-button="false"
+            :show-label="false"
+            :disabled="true"
+          />
+        </FtFlexBox>
+        <br>
+      </div>
+    </FtSettingsSection>
+    <FtSettingsSection
+      v-if="USING_ELECTRON"
+      :title="t('Settings.Player Settings.Voice Translation.Title')"
+    >
+      <FtFlexBox>
+        <FtSelect
+          :placeholder="t('Settings.Player Settings.Voice Translation.Voice Mode')"
+          :value="voiceTranslationVoiceMode"
+          :select-names="voiceTranslationVoiceModeNames"
+          :select-values="VOICE_TRANSLATION_VOICE_MODE_VALUES"
+          @change="updateVoiceTranslationVoiceMode"
+        />
+      </FtFlexBox>
+      <p>
+        {{ t('Settings.Player Settings.Voice Translation.Token Hint') }}
+      </p>
+      <FtFlexBox>
+        <FtInput
+          input-type="password"
+          :placeholder="t('Settings.Player Settings.Voice Translation.Token')"
+          :value="yandexOAuthToken"
+          :show-action-button="false"
+          :show-label="true"
+          :label="t('Settings.Player Settings.Voice Translation.Token')"
+          @input="yandexOAuthToken = $event"
+        />
+        <FtButton
+          :label="t('Settings.Player Settings.Voice Translation.Save Token')"
+          :disabled="!yandexOAuthToken || !yandexCredentialStorageAvailable"
+          @click="saveYandexOAuthToken"
+        />
+        <FtButton
+          :label="t('Settings.Player Settings.Voice Translation.Remove Token')"
+          :disabled="!hasYandexOAuthToken"
+          @click="removeYandexOAuthToken"
+        />
+      </FtFlexBox>
+      <p v-if="yandexOAuthTokenError">
+        {{ yandexOAuthTokenError }}
+      </p>
+      <p v-else-if="hasYandexOAuthToken">
+        {{ t('Settings.Player Settings.Voice Translation.Token Saved') }}
+      </p>
+      <p v-else-if="!yandexCredentialStorageAvailable">
+        {{ t('Settings.Player Settings.Voice Translation.Storage Unavailable') }}
+      </p>
+    </FtSettingsSection>
+  </div>
 </template>
 
 <script setup>
