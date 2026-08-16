@@ -486,6 +486,7 @@ Settings:
       Live Voices: Live voices
       Original Volume: Original audio
       Translation Volume: Translation
+      Volume Percentage: '{value}%'
       Token: Yandex OAuth token
       Save Token: Save token
       Remove Token: Remove token

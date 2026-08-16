@@ -87,6 +87,34 @@
         margin-block: 0 8px;
       }
 
+      .voiceTranslationControls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+      }
+
+      .voiceTranslationMode,
+      .voiceTranslationVolume {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .voiceTranslationVolume {
+        font-size: 0.9em;
+        white-space: nowrap;
+
+        input {
+          inline-size: 88px;
+          accent-color: var(--accent-color);
+        }
+
+        output {
+          min-inline-size: 3ch;
+        }
+      }
+
       button {
         border: 1px solid var(--accent-color);
         border-radius: 4px;
