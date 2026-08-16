@@ -44,6 +44,14 @@ The VOT smoke-test on 2026-08-16 used the repository's public example ID and did
 * `src/main/index.js`, `src/preload/{main,interface}.js`, `src/preload/preload-interface.d.ts` — expose one typed VOT IPC operation. Main process is the chosen security boundary, not a CORS workaround.
 * `src/renderer/components/PlayerSettings/*`, store defaults, and affected locale JSON — deferred until the media proof succeeds.
 
+## Minimal PoC implementation (2026-08-16)
+
+The first implementation adds an isolated `src/main/voiceTranslation/VotTranslationService.js` with a single allow-listed VOT worker host, validation that canonicalizes the YouTube URL from the video ID, a ten-minute bounded poll and `AbortSignal` support. The preload exposes only translate and cancel operations; it does not expose arbitrary network access.
+
+`VoiceTranslationPlaybackController` owns an independent `HTMLAudioElement`. It starts and pauses it with the Shaka-owned video, mirrors seeks and playback rate, checks drift every 500 ms and corrects only at 0.25 seconds or more. It temporarily uses original-video volume 15% and restores the previous volume and mute state during cleanup. Route changes and player teardown cancel the in-flight request and detach the audio listeners.
+
+The exact main-service smoke-test completed an English-to-Russian public test translation and returned an audio URL without storing or logging it. An already-aborted request returned `AbortError`. Targeted ESLint/Stylelint and `pnpm run pack` passed. Manual clicking in the Electron window could not be automated because the local Windows ACL failure also prevents the Computer Use node-repl helper from starting.
+
 ## Development/build verification
 
 The repository was fetched from `FreeTubeApp/FreeTube` branch `development` at commit `1e19525`; work is on `feature/vot-voice-translation`. `pnpm install --frozen-lockfile` completed successfully (1,105 packages). Electron `43.3.0` was downloaded, then `pnpm dev` started FreeTube successfully on Windows; the Electron window opened with title `Подписки - FreeTube` and development `dist/main.js`/`dist/preload.js` bundles were created.

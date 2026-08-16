@@ -62,6 +62,8 @@ Renderer direct fetch is not approved as the production plan: it can fail CORS a
 
 The main-process test proves the signed protocol can execute without extension runtime and avoids renderer CORS for VOT API calls. It does not prove that the returned remote audio permits renderer playback or range requests; that is the next, separate media test.
 
+FreeTube's current upstream BrowserWindow configuration already contains `webSecurity: false` in `src/main/index.js`. This PoC neither added nor relies on that setting: VOT requests execute in main process through a narrow IPC API. Changing the global upstream security setting is deliberately outside this localized PoC and should be assessed separately before release.
+
 ## Smoke-test evidence (2026-08-16)
 
 Using VOT's own public example YouTube ID, an isolated Node 22 process imported `@vot.js/ext/client` and `@vot.js/core/providers/votworker`. It created a session and requested English-to-Russian translation through `vot-worker.vtrans.eu.cc`; the worker returned `AUDIO_REQUESTED`, ETA 43 seconds, then polling returned `FINISHED` with an audio URL. Only endpoint path, HTTP status and boolean result fields were observed. No audio URL, response body, cookies, token or media file was stored.
