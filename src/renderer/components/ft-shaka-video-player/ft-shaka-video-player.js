@@ -202,6 +202,19 @@ export default defineComponent({
     /** @type {VoiceTranslationPlaybackController|null} */
     let voiceTranslationPlaybackController = null
 
+    const voiceTranslationOriginalVolume = computed(() => store.getters.getVoiceTranslationOriginalVolume)
+    const voiceTranslationTranslationVolume = computed(() => store.getters.getVoiceTranslationTranslationVolume)
+
+    function updateVoiceTranslationVolumes() {
+      voiceTranslationPlaybackController?.setVolumes(
+        voiceTranslationOriginalVolume.value,
+        voiceTranslationTranslationVolume.value
+      )
+    }
+
+    watch(voiceTranslationOriginalVolume, updateVoiceTranslationVolumes)
+    watch(voiceTranslationTranslationVolume, updateVoiceTranslationVolumes)
+
     /** @type {import('vue').Ref<HTMLCanvasElement | null>} */
     const vrCanvas = ref(null)
 
@@ -3288,7 +3301,11 @@ export default defineComponent({
       disableVoiceTranslation()
       voiceTranslationPlaybackController = new VoiceTranslationPlaybackController(
         video.value,
-        () => emit('voice-translation-error')
+        () => emit('voice-translation-error'),
+        {
+          originalVolume: voiceTranslationOriginalVolume.value,
+          translationVolume: voiceTranslationTranslationVolume.value
+        }
       )
       await voiceTranslationPlaybackController.enable(translation.audioUrl)
     }

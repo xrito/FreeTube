@@ -353,6 +353,22 @@ export default defineComponent({
         this.$store.dispatch('updateVoiceTranslationVoiceMode', value)
       }
     },
+    voiceTranslationOriginalVolume: {
+      get() {
+        return this.$store.getters.getVoiceTranslationOriginalVolume
+      },
+      set(value) {
+        this.$store.dispatch('updateVoiceTranslationOriginalVolume', value)
+      }
+    },
+    voiceTranslationTranslationVolume: {
+      get() {
+        return this.$store.getters.getVoiceTranslationTranslationVolume
+      },
+      set(value) {
+        this.$store.dispatch('updateVoiceTranslationTranslationVolume', value)
+      }
+    },
     voiceTranslationBusy() {
       return this.voiceTranslationState === 'preparing' || this.voiceTranslationState === 'generating' ||
         this.voiceTranslationState === 'loading-audio'

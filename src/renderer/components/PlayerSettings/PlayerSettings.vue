@@ -271,6 +271,26 @@
           @change="updateVoiceTranslationVoiceMode"
         />
       </FtFlexBox>
+      <FtFlexBox>
+        <FtSlider
+          :label="t('Settings.Player Settings.Voice Translation.Original Volume')"
+          :default-value="voiceTranslationOriginalVolume"
+          :min-value="0"
+          :max-value="100"
+          :step="1"
+          value-extension="%"
+          @change="updateVoiceTranslationOriginalVolume"
+        />
+        <FtSlider
+          :label="t('Settings.Player Settings.Voice Translation.Translation Volume')"
+          :default-value="voiceTranslationTranslationVolume"
+          :min-value="0"
+          :max-value="100"
+          :step="1"
+          value-extension="%"
+          @change="updateVoiceTranslationTranslationVolume"
+        />
+      </FtFlexBox>
       <p>
         {{ t('Settings.Player Settings.Voice Translation.Token Hint') }}
       </p>
@@ -723,6 +743,8 @@ const voiceTranslationVoiceModeNames = computed(() => [
   t('Settings.Player Settings.Voice Translation.Live Voices')
 ])
 const voiceTranslationVoiceMode = computed(() => store.getters.getVoiceTranslationVoiceMode)
+const voiceTranslationOriginalVolume = computed(() => store.getters.getVoiceTranslationOriginalVolume)
+const voiceTranslationTranslationVolume = computed(() => store.getters.getVoiceTranslationTranslationVolume)
 const yandexOAuthToken = ref('')
 const hasYandexOAuthToken = ref(false)
 const yandexCredentialStorageAvailable = ref(false)
@@ -733,6 +755,20 @@ const yandexOAuthTokenError = ref('')
  */
 function updateVoiceTranslationVoiceMode(value) {
   store.dispatch('updateVoiceTranslationVoiceMode', value)
+}
+
+/**
+ * @param {number} value
+ */
+function updateVoiceTranslationOriginalVolume(value) {
+  store.dispatch('updateVoiceTranslationOriginalVolume', value)
+}
+
+/**
+ * @param {number} value
+ */
+function updateVoiceTranslationTranslationVolume(value) {
+  store.dispatch('updateVoiceTranslationTranslationVolume', value)
 }
 
 async function refreshYandexOAuthTokenStatus() {

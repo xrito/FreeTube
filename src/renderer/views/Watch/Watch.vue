@@ -62,23 +62,53 @@
           class="voiceTranslationPoc"
         >
           <h2>{{ voiceTranslationTitle }}</h2>
-          <label>
-            {{ $t('Settings.Player Settings.Voice Translation.Voice Mode') }}
-            <select
-              v-model="voiceTranslationVoiceMode"
+          <div class="voiceTranslationControls">
+            <label class="voiceTranslationMode">
+              {{ $t('Settings.Player Settings.Voice Translation.Voice Mode') }}
+              <select
+                v-model="voiceTranslationVoiceMode"
+                :disabled="voiceTranslationBusy"
+              >
+                <option value="standard">{{ $t('Settings.Player Settings.Voice Translation.Standard Voices') }}</option>
+                <option value="live">{{ $t('Settings.Player Settings.Voice Translation.Live Voices') }}</option>
+              </select>
+            </label>
+            <button
+              type="button"
               :disabled="voiceTranslationBusy"
+              @click="toggleVoiceTranslation"
             >
-              <option value="standard">{{ $t('Settings.Player Settings.Voice Translation.Standard Voices') }}</option>
-              <option value="live">{{ $t('Settings.Player Settings.Voice Translation.Live Voices') }}</option>
-            </select>
-          </label>
-          <button
-            type="button"
-            :disabled="voiceTranslationBusy"
-            @click="toggleVoiceTranslation"
-          >
-            {{ voiceTranslationButtonLabel }}
-          </button>
+              {{ voiceTranslationButtonLabel }}
+            </button>
+            <label
+              v-if="voiceTranslationState === 'enabled'"
+              class="voiceTranslationVolume"
+            >
+              <span>{{ $t('Settings.Player Settings.Voice Translation.Original Volume') }}</span>
+              <input
+                v-model.number="voiceTranslationOriginalVolume"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+              >
+              <output>{{ $t('Settings.Player Settings.Voice Translation.Volume Percentage', { value: voiceTranslationOriginalVolume }) }}</output>
+            </label>
+            <label
+              v-if="voiceTranslationState === 'enabled'"
+              class="voiceTranslationVolume"
+            >
+              <span>{{ $t('Settings.Player Settings.Voice Translation.Translation Volume') }}</span>
+              <input
+                v-model.number="voiceTranslationTranslationVolume"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+              >
+              <output>{{ $t('Settings.Player Settings.Voice Translation.Volume Percentage', { value: voiceTranslationTranslationVolume }) }}</output>
+            </label>
+          </div>
           <p v-if="voiceTranslationNotice">
             {{ voiceTranslationNotice }}
           </p>
