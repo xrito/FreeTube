@@ -148,6 +148,20 @@ export default {
     return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_CANCEL, videoId)
   },
 
+  getVoiceTranslationAccountStatus: () => {
+    return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_ACCOUNT_STATUS)
+  },
+
+  /**
+   * @param {string} token
+   */
+  saveVoiceTranslationAccountToken: (token) => {
+    return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_SAVE_ACCOUNT_TOKEN, token)
+  },
+
+  clearVoiceTranslationAccountToken: () => {
+    return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_CLEAR_ACCOUNT_TOKEN)
+  },
   chooseDefaultFolder: () => {
     ipcRenderer.send(IpcChannels.CHOOSE_DEFAULT_FOLDER)
   },

@@ -179,6 +179,7 @@ export default defineComponent({
       currentPlaybackRate: null,
       voiceTranslationState: 'idle',
       voiceTranslationError: '',
+      voiceTranslationNotice: '',
       voiceTranslationRequestId: 0,
       voiceTranslationRequestVideoId: null,
       voiceTranslationStatusTimeout: null,
@@ -342,7 +343,15 @@ export default defineComponent({
       return process.env.IS_ELECTRON
     },
     voiceTranslationTitle() {
-      return 'Voice translation'
+      return this.$t('Settings.Player Settings.Voice Translation.Title')
+    },
+    voiceTranslationVoiceMode: {
+      get() {
+        return this.$store.getters.getVoiceTranslationVoiceMode
+      },
+      set(value) {
+        this.$store.dispatch('updateVoiceTranslationVoiceMode', value)
+      }
     },
     voiceTranslationBusy() {
       return this.voiceTranslationState === 'preparing' || this.voiceTranslationState === 'generating' ||
@@ -1607,9 +1616,11 @@ export default defineComponent({
 
       const requestId = this.voiceTranslationRequestId + 1
       const videoId = this.videoId
+      const voiceMode = this.voiceTranslationVoiceMode
       this.voiceTranslationRequestId = requestId
       this.voiceTranslationRequestVideoId = videoId
       this.voiceTranslationError = ''
+      this.voiceTranslationNotice = ''
       this.voiceTranslationState = 'preparing'
       clearTimeout(this.voiceTranslationStatusTimeout)
       this.voiceTranslationStatusTimeout = setTimeout(() => {
@@ -1624,7 +1635,8 @@ export default defineComponent({
           videoUrl: `https://youtu.be/${videoId}`,
           duration: this.videoLengthSeconds,
           sourceLanguage: 'en',
-          targetLanguage: 'ru'
+          targetLanguage: 'ru',
+          voiceMode
         })
 
         if (this.voiceTranslationRequestId !== requestId || this.videoId !== videoId || !this.$refs.player) {
@@ -1637,6 +1649,9 @@ export default defineComponent({
         if (this.voiceTranslationRequestId === requestId && this.videoId === videoId) {
           this.voiceTranslationState = 'enabled'
           this.voiceTranslationRequestVideoId = null
+          this.voiceTranslationNotice = voiceMode === 'live' && translation.voiceMode !== 'live'
+            ? this.$t('Settings.Player Settings.Voice Translation.Live Fallback')
+            : ''
         }
       } catch (error) {
         if (this.voiceTranslationRequestId !== requestId) {
@@ -1648,7 +1663,9 @@ export default defineComponent({
         }
 
         this.voiceTranslationState = 'error'
-        this.voiceTranslationError = 'Не удалось получить голосовой перевод этого видео.'
+        this.voiceTranslationError = error?.code === 'account-required'
+          ? this.$t('Settings.Player Settings.Voice Translation.Account Required')
+          : 'Не удалось получить голосовой перевод этого видео.'
         this.voiceTranslationRequestVideoId = null
       } finally {
         clearTimeout(this.voiceTranslationStatusTimeout)
@@ -1670,6 +1687,7 @@ export default defineComponent({
       this.$refs.player?.disableVoiceTranslation()
       this.voiceTranslationState = 'idle'
       this.voiceTranslationError = ''
+      this.voiceTranslationNotice = ''
     },
 
     handleVoiceTranslationAudioError: function () {

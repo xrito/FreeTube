@@ -44,3 +44,33 @@ export async function cancelVoiceTranslation(videoId) {
     await window.ftElectron.cancelVoiceTranslation(videoId)
   }
 }
+
+export async function getVoiceTranslationAccountStatus() {
+  if (!process.env.IS_ELECTRON || !window.ftElectron?.getVoiceTranslationAccountStatus) {
+    return { available: false, hasToken: false }
+  }
+
+  return window.ftElectron.getVoiceTranslationAccountStatus()
+}
+
+/**
+ * @param {string} token
+ */
+export async function saveVoiceTranslationAccountToken(token) {
+  if (!process.env.IS_ELECTRON || !window.ftElectron?.saveVoiceTranslationAccountToken) {
+    throw new VoiceTranslationClientError('unsupported', 'Voice translation is available only in the desktop app')
+  }
+
+  const response = await window.ftElectron.saveVoiceTranslationAccountToken(token)
+  if (!response?.ok) {
+    throw new VoiceTranslationClientError(response?.error?.code ?? 'invalid-token', 'Unable to save Yandex OAuth token')
+  }
+}
+
+export async function clearVoiceTranslationAccountToken() {
+  if (!process.env.IS_ELECTRON || !window.ftElectron?.clearVoiceTranslationAccountToken) {
+    return false
+  }
+
+  return window.ftElectron.clearVoiceTranslationAccountToken()
+}
