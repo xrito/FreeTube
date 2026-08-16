@@ -43,6 +43,9 @@ const IpcChannels = {
 
   GENERATE_PO_TOKEN: 'generate-po-token',
 
+  VOICE_TRANSLATION_TRANSLATE: 'voice-translation-translate',
+  VOICE_TRANSLATION_CANCEL: 'voice-translation-cancel',
+
   CHOOSE_DEFAULT_FOLDER: 'choose-default-folder',
   WRITE_TO_DEFAULT_FOLDER: 'write-to-default-folder',
 

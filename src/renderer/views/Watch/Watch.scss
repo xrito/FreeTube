@@ -77,6 +77,32 @@
       margin-inline: 0;
     }
 
+    .voiceTranslationPoc {
+      margin-block: 12px 0;
+      margin-inline: auto;
+      max-inline-size: calc(80vh * 1.78);
+
+      h2,
+      p {
+        margin-block: 0 8px;
+      }
+
+      button {
+        border: 1px solid var(--accent-color);
+        border-radius: 4px;
+        background: var(--accent-color);
+        color: var(--text-with-accent-color);
+        cursor: pointer;
+        padding-block: 8px;
+        padding-inline: 12px;
+
+        &:disabled {
+          cursor: progress;
+          opacity: 0.7;
+        }
+      }
+    }
+
     .videoPlayer {
       grid-column: 1;
       margin-block: 0;

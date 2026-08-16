@@ -52,10 +52,27 @@
           @toggle-theatre-mode="useTheatreMode = !useTheatreMode"
           @toggle-autoplay="toggleAutoplay"
           @playback-rate-updated="updatePlaybackRate"
+          @voice-translation-error="handleVoiceTranslationAudioError"
           @skip-to-next="handleSkipToNext"
           @skip-to-prev="handleSkipToPrev"
           @player-reload-requested="onPlayerReloadRequested"
         />
+        <section
+          v-if="voiceTranslationAvailable && !isLive && !isUpcoming && !errorMessage"
+          class="voiceTranslationPoc"
+        >
+          <h2>{{ voiceTranslationTitle }}</h2>
+          <button
+            type="button"
+            :disabled="voiceTranslationBusy"
+            @click="toggleVoiceTranslation"
+          >
+            {{ voiceTranslationButtonLabel }}
+          </button>
+          <p v-if="voiceTranslationError">
+            {{ voiceTranslationError }}
+          </p>
+        </section>
         <div
           v-if="!isLoading && (isUpcoming || errorMessage)"
           class="videoPlayer"
