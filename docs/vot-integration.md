@@ -50,7 +50,7 @@ The first implementation adds an isolated `src/main/voiceTranslation/VotTranslat
 
 `VoiceTranslationPlaybackController` owns an independent `HTMLAudioElement`. It starts and pauses it with the Shaka-owned video, mirrors seeks and playback rate, checks drift every 500 ms and corrects only at 0.25 seconds or more. It temporarily uses original-video volume 15% and restores the previous volume and mute state during cleanup. Route changes and player teardown cancel the in-flight request and detach the audio listeners.
 
-The exact main-service smoke-test completed an English-to-Russian public test translation and returned an audio URL without storing or logging it. An already-aborted request returned `AbortError`. Targeted ESLint/Stylelint and `pnpm run pack` passed. Manual clicking in the Electron window could not be automated because the local Windows ACL failure also prevents the Computer Use node-repl helper from starting.
+The exact main-service smoke-test completed an English-to-Russian public test translation and returned an audio URL without storing or logging it. An already-aborted request returned `AbortError`. Targeted ESLint/Stylelint and `pnpm run pack` passed. Manual clicking in the Electron window could not be automated because the local Windows ACL failure also prevents the Computer Use node-repl helper from starting.\n\nManual validation reported by the user: on an English YouTube video, the translation control was visible, VOT generated the Russian voice track, and playback worked in FreeTube.
 
 ## Development/build verification
 
