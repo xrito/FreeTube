@@ -397,6 +397,21 @@ Settings:
     Scroll Playback Rate Over Video Player: Прокрутка скорости воспроизведения поверх видеопроигрывателя
     Max Video Playback Rate: Предельная скорость воспроизведения
     Video Playback Rate Interval: Интервал скорости воспроизведения видео
+    Voice Translation:
+      Title: Голосовой перевод
+      Voice Mode: Режим озвучки
+      Standard Voices: Обычные голоса
+      Live Voices: Живые голоса
+      Token: Yandex OAuth token
+      Save Token: Сохранить token
+      Remove Token: Удалить token
+      Token Hint: Для живых голосов нужен ваш Yandex OAuth token. Он шифруется Windows и доступен только main process.
+      Token Saved: Yandex OAuth token сохранён.
+      Storage Unavailable: Зашифрованное хранилище учётных данных недоступно в этой системе.
+      Token Save Failed: Не удалось сохранить Yandex OAuth token.
+      Token Remove Failed: Не удалось удалить Yandex OAuth token.
+      Account Required: Для живых голосов добавьте Yandex OAuth token в Settings → Player.
+      Live Fallback: 'Живые голоса недоступны для этого видео: включена обычная озвучка.'
     Screenshot:
       Modes:
         Ask Path: Спрашивать папку для сохранения

@@ -257,6 +257,53 @@
       <br>
     </div>
   </FtSettingsSection>
+  <FtSettingsSection
+    v-if="USING_ELECTRON"
+    :title="t('Settings.Player Settings.Voice Translation.Title')"
+  >
+    <FtFlexBox>
+      <FtSelect
+        :placeholder="t('Settings.Player Settings.Voice Translation.Voice Mode')"
+        :value="voiceTranslationVoiceMode"
+        :select-names="voiceTranslationVoiceModeNames"
+        :select-values="VOICE_TRANSLATION_VOICE_MODE_VALUES"
+        @change="updateVoiceTranslationVoiceMode"
+      />
+    </FtFlexBox>
+    <p>
+      {{ t('Settings.Player Settings.Voice Translation.Token Hint') }}
+    </p>
+    <FtFlexBox>
+      <FtInput
+        input-type="password"
+        :placeholder="t('Settings.Player Settings.Voice Translation.Token')"
+        :value="yandexOAuthToken"
+        :show-action-button="false"
+        :show-label="true"
+        :label="t('Settings.Player Settings.Voice Translation.Token')"
+        @input="yandexOAuthToken = $event"
+      />
+      <FtButton
+        :label="t('Settings.Player Settings.Voice Translation.Save Token')"
+        :disabled="!yandexOAuthToken || !yandexCredentialStorageAvailable"
+        @click="saveYandexOAuthToken"
+      />
+      <FtButton
+        :label="t('Settings.Player Settings.Voice Translation.Remove Token')"
+        :disabled="!hasYandexOAuthToken"
+        @click="removeYandexOAuthToken"
+      />
+    </FtFlexBox>
+    <p v-if="yandexOAuthTokenError">
+      {{ yandexOAuthTokenError }}
+    </p>
+    <p v-else-if="hasYandexOAuthToken">
+      {{ t('Settings.Player Settings.Voice Translation.Token Saved') }}
+    </p>
+    <p v-else-if="!yandexCredentialStorageAvailable">
+      {{ t('Settings.Player Settings.Voice Translation.Storage Unavailable') }}
+    </p>
+  </FtSettingsSection>
 </template>
 
 <script setup>
@@ -273,6 +320,11 @@ import FtInput from '../FtInput/FtInput.vue'
 import FtTooltip from '../FtTooltip/FtTooltip.vue'
 
 import store from '../../store/index'
+import {
+  clearVoiceTranslationAccountToken,
+  getVoiceTranslationAccountStatus,
+  saveVoiceTranslationAccountToken
+} from '../../services/voiceTranslation'
 
 const { t } = useI18n()
 
@@ -656,8 +708,64 @@ const screenshotFilenamePattern = computed(() => store.getters.getScreenshotFile
 
 onMounted(() => {
   getScreenshotFilenameExample(screenshotFilenamePattern.value)
+  if (USING_ELECTRON) {
+    refreshYandexOAuthTokenStatus().catch(() => {
+      yandexCredentialStorageAvailable.value = false
+    })
+  }
 })
 
+const VOICE_TRANSLATION_VOICE_MODE_VALUES = ['standard', 'live']
+const voiceTranslationVoiceModeNames = computed(() => [
+  t('Settings.Player Settings.Voice Translation.Standard Voices'),
+  t('Settings.Player Settings.Voice Translation.Live Voices')
+])
+const voiceTranslationVoiceMode = computed(() => store.getters.getVoiceTranslationVoiceMode)
+const yandexOAuthToken = ref('')
+const hasYandexOAuthToken = ref(false)
+const yandexCredentialStorageAvailable = ref(false)
+const yandexOAuthTokenError = ref('')
+
+/**
+ * @param {'standard'|'live'} value
+ */
+function updateVoiceTranslationVoiceMode(value) {
+  store.dispatch('updateVoiceTranslationVoiceMode', value)
+}
+
+async function refreshYandexOAuthTokenStatus() {
+  const status = await getVoiceTranslationAccountStatus()
+  hasYandexOAuthToken.value = status?.hasToken === true
+  yandexCredentialStorageAvailable.value = status?.available === true
+}
+
+async function saveYandexOAuthToken() {
+  yandexOAuthTokenError.value = ''
+
+  try {
+    await saveVoiceTranslationAccountToken(yandexOAuthToken.value)
+    yandexOAuthToken.value = ''
+    await refreshYandexOAuthTokenStatus()
+  } catch {
+    yandexOAuthTokenError.value = t('Settings.Player Settings.Voice Translation.Token Save Failed')
+  }
+}
+
+async function removeYandexOAuthToken() {
+  yandexOAuthTokenError.value = ''
+  const removed = await clearVoiceTranslationAccountToken()
+
+  if (!removed) {
+    yandexOAuthTokenError.value = t('Settings.Player Settings.Voice Translation.Token Remove Failed')
+    return
+  }
+
+  if (voiceTranslationVoiceMode.value === 'live') {
+    store.dispatch('updateVoiceTranslationVoiceMode', 'standard')
+  }
+
+  await refreshYandexOAuthTokenStatus()
+}
 const SCREENSHOT_DEFAULT_PATTERN = '%Y%M%D-%H%N%S'
 
 /**

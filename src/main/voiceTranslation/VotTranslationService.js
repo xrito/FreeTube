@@ -10,7 +10,7 @@ const MAX_POLL_INTERVAL_SECONDS = 30
 
 export class VoiceTranslationError extends Error {
   /**
-   * @param {'invalid-request'|'unsupported'|'timeout'|'network'|'translation-failed'} code
+   * @param {'invalid-request'|'unsupported'|'timeout'|'network'|'translation-failed'|'account-required'} code
    * @param {string} message
    */
   constructor(code, message) {
@@ -22,29 +22,47 @@ export class VoiceTranslationError extends Error {
 
 export class VotTranslationService {
   /**
+   * @param {{ getToken: () => Promise<string|undefined> }|undefined} accountStore
+   */
+  constructor(accountStore = undefined) {
+    this.accountStore = accountStore
+  }
+
+  /**
    * @param {{
    *   videoId: string,
    *   videoUrl: string,
    *   duration?: number,
    *   sourceLanguage?: string,
-   *   targetLanguage: string
+   *   targetLanguage: string,
+   *   voiceMode?: 'standard'|'live'
    * }} request
    * @param {AbortSignal} signal
    * @returns {Promise<{
    *   audioUrl: string,
    *   duration?: number,
    *   sourceLanguage: string,
-   *   targetLanguage: string
+   *   targetLanguage: string,
+   *   voiceMode: 'standard'|'live'
    * }>}
    */
   async translateVideo(request, signal) {
     const normalizedRequest = normalizeRequest(request)
     throwIfAborted(signal)
 
+    const apiToken = normalizedRequest.voiceMode === 'live'
+      ? await this.accountStore?.getToken()
+      : undefined
+
+    if (normalizedRequest.voiceMode === 'live' && !apiToken) {
+      throw new VoiceTranslationError('account-required', 'A Yandex OAuth token is required for live voices')
+    }
+
     const client = new VOTClient({
       host: VOT_WORKER_HOST,
       provider: VOTWorkerProvider,
-      fetchOpts: { signal }
+      fetchOpts: { signal },
+      apiToken
     })
     const startedAt = Date.now()
     const translationRequest = {
@@ -58,12 +76,24 @@ export class VotTranslationService {
       responseLang: normalizedRequest.targetLanguage
     }
 
-    let response = await client.translateVideo({
-      ...translationRequest,
-      // The provider implements VOT's YouTube AUDIO_REQUESTED fallback. It is
-      // intentionally kept here instead of importing the extension downloader.
-      shouldSendFailedAudio: true
-    })
+    let useLivelyVoice = normalizedRequest.voiceMode === 'live'
+    let response
+
+    try {
+      response = await requestTranslation(client, translationRequest, true, useLivelyVoice)
+    } catch (error) {
+      if (!useLivelyVoice || !isLivelyVoiceUnavailable(error)) {
+        throw error
+      }
+
+      useLivelyVoice = false
+      response = await requestTranslation(client, translationRequest, true, false)
+    }
+
+    if (useLivelyVoice && isLivelyVoiceUnavailable(response)) {
+      useLivelyVoice = false
+      response = await requestTranslation(client, translationRequest, true, false)
+    }
 
     while (!response.translated) {
       throwIfAborted(signal)
@@ -75,10 +105,21 @@ export class VotTranslationService {
       await waitForPollInterval(response.remainingTime, signal)
       throwIfAborted(signal)
 
-      response = await client.translateVideo({
-        ...translationRequest,
-        shouldSendFailedAudio: false
-      })
+      try {
+        response = await requestTranslation(client, translationRequest, false, useLivelyVoice)
+      } catch (error) {
+        if (!useLivelyVoice || !isLivelyVoiceUnavailable(error)) {
+          throw error
+        }
+
+        useLivelyVoice = false
+        response = await requestTranslation(client, translationRequest, false, false)
+      }
+
+      if (useLivelyVoice && isLivelyVoiceUnavailable(response)) {
+        useLivelyVoice = false
+        response = await requestTranslation(client, translationRequest, false, false)
+      }
     }
 
     if (!response.url) {
@@ -89,9 +130,35 @@ export class VotTranslationService {
       audioUrl: response.url,
       duration: normalizedRequest.duration,
       sourceLanguage: normalizedRequest.sourceLanguage,
-      targetLanguage: normalizedRequest.targetLanguage
+      targetLanguage: normalizedRequest.targetLanguage,
+      voiceMode: useLivelyVoice ? 'live' : 'standard'
     }
   }
+}
+
+/**
+ * @param {VOTClient} client
+ * @param {object} translationRequest
+ * @param {boolean} shouldSendFailedAudio
+ * @param {boolean} useLivelyVoice
+ */
+function requestTranslation(client, translationRequest, shouldSendFailedAudio, useLivelyVoice) {
+  return client.translateVideo({
+    ...translationRequest,
+    extraOpts: { useLivelyVoice },
+    // The provider implements VOT's YouTube AUDIO_REQUESTED fallback. It is
+    // intentionally kept here instead of importing the extension downloader.
+    shouldSendFailedAudio
+  })
+}
+
+/**
+ * @param {unknown} value
+ */
+function isLivelyVoiceUnavailable(value) {
+  const candidate = /** @type {{ message?: unknown, data?: { message?: unknown } }} */ (value)
+  const messages = [candidate?.message, candidate?.data?.message]
+  return messages.some(message => typeof message === 'string' && message.toLowerCase().includes('обычная озвучка'))
 }
 
 /**
@@ -107,6 +174,7 @@ function normalizeRequest(value) {
   const videoUrl = typeof request.videoUrl === 'string' ? request.videoUrl : ''
   const sourceLanguage = request.sourceLanguage ?? 'en'
   const targetLanguage = request.targetLanguage
+  const voiceMode = request.voiceMode ?? 'standard'
 
   if (!/^[A-Za-z0-9_-]{6,}$/.test(videoId) || !isMatchingYouTubeUrl(videoUrl, videoId)) {
     throw new VoiceTranslationError('invalid-request', 'Invalid YouTube video reference')
@@ -114,6 +182,10 @@ function normalizeRequest(value) {
 
   if (sourceLanguage !== 'en' || targetLanguage !== 'ru') {
     throw new VoiceTranslationError('unsupported', 'Only English to Russian voice translation is supported')
+  }
+
+  if (voiceMode !== 'standard' && voiceMode !== 'live') {
+    throw new VoiceTranslationError('invalid-request', 'Invalid voice translation mode')
   }
 
   const duration = typeof request.duration === 'number' && Number.isFinite(request.duration) &&
@@ -128,7 +200,8 @@ function normalizeRequest(value) {
     videoUrl: `https://youtu.be/${videoId}`,
     duration,
     sourceLanguage,
-    targetLanguage
+    targetLanguage,
+    voiceMode
   }
 }
 

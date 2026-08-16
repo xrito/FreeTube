@@ -45,6 +45,9 @@ const IpcChannels = {
 
   VOICE_TRANSLATION_TRANSLATE: 'voice-translation-translate',
   VOICE_TRANSLATION_CANCEL: 'voice-translation-cancel',
+  VOICE_TRANSLATION_ACCOUNT_STATUS: 'voice-translation-account-status',
+  VOICE_TRANSLATION_SAVE_ACCOUNT_TOKEN: 'voice-translation-save-account-token',
+  VOICE_TRANSLATION_CLEAR_ACCOUNT_TOKEN: 'voice-translation-clear-account-token',
 
   CHOOSE_DEFAULT_FOLDER: 'choose-default-folder',
   WRITE_TO_DEFAULT_FOLDER: 'write-to-default-folder',

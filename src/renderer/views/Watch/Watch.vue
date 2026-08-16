@@ -62,6 +62,16 @@
           class="voiceTranslationPoc"
         >
           <h2>{{ voiceTranslationTitle }}</h2>
+          <label>
+            {{ $t('Settings.Player Settings.Voice Translation.Voice Mode') }}
+            <select
+              v-model="voiceTranslationVoiceMode"
+              :disabled="voiceTranslationBusy"
+            >
+              <option value="standard">{{ $t('Settings.Player Settings.Voice Translation.Standard Voices') }}</option>
+              <option value="live">{{ $t('Settings.Player Settings.Voice Translation.Live Voices') }}</option>
+            </select>
+          </label>
           <button
             type="button"
             :disabled="voiceTranslationBusy"
@@ -69,6 +79,9 @@
           >
             {{ voiceTranslationButtonLabel }}
           </button>
+          <p v-if="voiceTranslationNotice">
+            {{ voiceTranslationNotice }}
+          </p>
           <p v-if="voiceTranslationError">
             {{ voiceTranslationError }}
           </p>

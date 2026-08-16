@@ -31,6 +31,7 @@ import { handleOpenInExternalPlayer } from './externalPlayer'
 import { generatePoToken } from './poTokenGenerator'
 import { isFreeTubeUrl } from './utils'
 import { VoiceTranslationError, VotTranslationService } from './voiceTranslation/VotTranslationService'
+import { VotAccountStore } from './voiceTranslation/VotAccountStore'
 
 const brotliDecompressAsync = promisify(brotliDecompress)
 
@@ -1313,7 +1314,49 @@ function runApp() {
     }
   })
 
-  const votTranslationService = new VotTranslationService()
+  const votAccountStore = new VotAccountStore(userDataPath)
+  const votTranslationService = new VotTranslationService(votAccountStore)
+  ipcMain.handle(IpcChannels.VOICE_TRANSLATION_ACCOUNT_STATUS, async (event) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) {
+      return { available: false, hasToken: false }
+    }
+
+    return votAccountStore.getStatus()
+  })
+
+  ipcMain.handle(IpcChannels.VOICE_TRANSLATION_SAVE_ACCOUNT_TOKEN, async (event, token) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) {
+      return { ok: false, error: { code: 'forbidden' } }
+    }
+
+    try {
+      await votAccountStore.saveToken(token)
+      return { ok: true }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[VOT] Failed to save Yandex account token', error)
+      }
+
+      return { ok: false, error: { code: 'invalid-token' } }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.VOICE_TRANSLATION_CLEAR_ACCOUNT_TOKEN, async (event) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) {
+      return false
+    }
+
+    try {
+      await votAccountStore.clearToken()
+      return true
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[VOT] Failed to clear Yandex account token', error)
+      }
+
+      return false
+    }
+  })
   /** @type {Map<number, { videoId: string, controller: AbortController }>} */
   const activeVoiceTranslations = new Map()
 

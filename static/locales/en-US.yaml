@@ -479,6 +479,21 @@ Settings:
       1440p: 1440p
       4k: 4k
       8k: 8k
+    Voice Translation:
+      Title: Voice translation
+      Voice Mode: Voice mode
+      Standard Voices: Standard voices
+      Live Voices: Live voices
+      Token: Yandex OAuth token
+      Save Token: Save token
+      Remove Token: Remove token
+      Token Hint: Live voices require your own Yandex OAuth token. It is encrypted by Windows and is available only to the main process.
+      Token Saved: Yandex OAuth token is saved.
+      Storage Unavailable: Encrypted credential storage is unavailable on this system.
+      Token Save Failed: Unable to save the Yandex OAuth token.
+      Token Remove Failed: Unable to remove the Yandex OAuth token.
+      Account Required: Add a Yandex OAuth token in Settings → Player to use live voices.
+      Live Fallback: Live voices are unavailable for this video; standard voices are being used.
     Screenshot:
       Enable: Enable Screenshot
       Mode: Screenshot Mode
