@@ -294,6 +294,7 @@ const state = {
   videoVolumeMouseScroll: false,
   voiceTranslationOriginalVolume: 15,
   voiceTranslationTranslationVolume: 100,
+  limitVoiceTranslationExportAudio: true,
   voiceTranslationVoiceMode: 'standard',
   videoPlaybackRateMouseScroll: false,
   videoSkipMouseScroll: false,

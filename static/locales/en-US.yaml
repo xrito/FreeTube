@@ -487,13 +487,20 @@ Settings:
       Original Volume: Original audio
       Translation Volume: Translation
       Volume Percentage: '{value}%'
+      Limit Export Audio: Prevent clipping in exported audio
       Export MKV: Save MKV with translation
       Exporting: Saving...
       Choose Export Location: Choose save location...
       Downloading Source: Downloading source video...
       Downloading Source Progress: 'Downloading source video: {value}%'
+      Export Progress Percentage: '{value}% complete'
       Adding Translation: Adding translation track...
       Finalizing Export: Saving file...
+      Cancel Export: Cancel export
+      Cancelling Export: Cancelling export...
+      Export Cancelled: Video export cancelled.
+      Source Download Failed: Unable to download the YouTube stream. YouTube may have changed its format or the bundled yt-dlp may be outdated. Update FreeTube VOT and try again.
+      Downloader Unavailable: The bundled yt-dlp downloader is unavailable. Reinstall or update FreeTube VOT.
       Token: Yandex OAuth token
       Save Token: Save token
       Remove Token: Remove token

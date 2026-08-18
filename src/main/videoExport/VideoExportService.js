@@ -33,7 +33,7 @@ export class VideoExportService {
    * Downloads the public YouTube source separately from the active FreeTube
    * player. The player can use SABR, which FFmpeg cannot consume directly.
    *
-   * @param {{ videoId: string, translationAudioUrl: string, title: string, originalVolume: number, translationVolume: number }} request
+   * @param {{ videoId: string, translationAudioUrl: string, title: string, originalVolume: number, translationVolume: number, limitAudio: boolean }} request
    * @param {AbortSignal} signal
    * @returns {Promise<{ cancelled: boolean, filePath?: string }>}
    */
@@ -73,6 +73,7 @@ export class VideoExportService {
         translationAudioUrl: normalizedRequest.translationAudioUrl,
         originalVolume: normalizedRequest.originalVolume,
         translationVolume: normalizedRequest.translationVolume,
+        limitAudio: normalizedRequest.limitAudio,
         outputPath: partialFilePath,
         signal
       })
@@ -155,7 +156,7 @@ async function downloadYouTubeSource({ ytDlpPath, ffmpegPath, videoId, tempDirec
   return path.join(tempDirectory, sourceEntry.name)
 }
 
-function muxVoiceTranslation({ ffmpegPath, sourcePath, translationAudioUrl, originalVolume, translationVolume, outputPath, signal }) {
+function muxVoiceTranslation({ ffmpegPath, sourcePath, translationAudioUrl, originalVolume, translationVolume, limitAudio, outputPath, signal }) {
   return runProcess({
     executablePath: ffmpegPath,
     args: [
@@ -163,7 +164,7 @@ function muxVoiceTranslation({ ffmpegPath, sourcePath, translationAudioUrl, orig
       '-i', sourcePath,
       '-i', translationAudioUrl,
       '-filter_complex',
-      `[0:a:0]volume=${originalVolume / 100}[original];[1:a:0]volume=${translationVolume / 100}[translation];[original][translation]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[mixed]`,
+      createVoiceTranslationMixFilter(originalVolume, translationVolume, limitAudio),
       '-map', '0:v:0',
       '-map', '[mixed]',
       '-c:v', 'copy',
@@ -238,12 +239,18 @@ function normalizeRequest(value) {
   const title = typeof request.title === 'string' ? request.title : 'FreeTube video'
   const originalVolume = normalizeVolume(request.originalVolume)
   const translationVolume = normalizeVolume(request.translationVolume)
+  const limitAudio = request.limitAudio !== false
 
   if (!/^[\w-]{11}$/.test(videoId) || !translationAudioUrl.startsWith('https://')) {
     throw new VideoExportError('invalid-request', 'Invalid video export request')
   }
 
-  return { videoId, translationAudioUrl, title, originalVolume, translationVolume }
+  return { videoId, translationAudioUrl, title, originalVolume, translationVolume, limitAudio }
+}
+
+export function createVoiceTranslationMixFilter(originalVolume, translationVolume, limitAudio = true) {
+  const limiter = limitAudio ? ',alimiter=limit=0.95:level=false' : ''
+  return `[0:a:0]volume=${originalVolume / 100}[original];[1:a:0]volume=${translationVolume / 100}[translation];[original][translation]amix=inputs=2:duration=first:dropout_transition=0:normalize=0${limiter}[mixed]`
 }
 
 function normalizeVolume(value) {

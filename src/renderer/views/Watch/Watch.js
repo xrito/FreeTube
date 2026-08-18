@@ -40,7 +40,7 @@ import {
 } from '../../helpers/api/invidious'
 import { sortCaptions } from '../../helpers/player/utils'
 import { MANIFEST_TYPE_SABR } from '../../helpers/player/SabrManifestParser'
-import { cancelVoiceTranslation, cancelVoiceTranslationExport, exportVoiceTranslationVideo, subscribeVoiceTranslationExportProgress, translateVoiceVideo } from '../../services/voiceTranslation'
+import { cancelVoiceTranslation, cancelVoiceTranslationExport as cancelVoiceTranslationExportRequest, exportVoiceTranslationVideo, subscribeVoiceTranslationExportProgress, translateVoiceVideo } from '../../services/voiceTranslation'
 import { useI18n } from 'vue-i18n'
 
 /**
@@ -374,6 +374,9 @@ export default defineComponent({
         this.$store.dispatch('updateVoiceTranslationTranslationVolume', value)
       }
     },
+    limitVoiceTranslationExportAudio() {
+      return this.$store.getters.getLimitVoiceTranslationExportAudio
+    },
     voiceTranslationBusy() {
       return this.voiceTranslationState === 'preparing' || this.voiceTranslationState === 'generating' ||
         this.voiceTranslationState === 'loading-audio'
@@ -394,6 +397,8 @@ export default defineComponent({
           return this.$t('Settings.Player Settings.Voice Translation.Adding Translation')
         case 'finishing':
           return this.$t('Settings.Player Settings.Voice Translation.Finalizing Export')
+        case 'cancelling':
+          return this.$t('Settings.Player Settings.Voice Translation.Cancelling Export')
         default:
           return this.$t('Settings.Player Settings.Voice Translation.Exporting')
       }
@@ -433,12 +438,15 @@ export default defineComponent({
     this.checkIfTimestamp()
     this.currentPlaybackRate = this.$store.getters.getDefaultPlayback
     this.voiceTranslationExportProgressCleanup = subscribeVoiceTranslationExportProgress((progress) => {
-      if (progress?.videoId !== this.videoId || this.voiceTranslationExportState !== 'exporting') return
+      if (progress?.videoId !== this.videoId || this.voiceTranslationExportState !== 'exporting' || this.voiceTranslationExportStatus === 'cancelling') return
       this.voiceTranslationExportStatus = progress.stage
       this.voiceTranslationExportPercent = typeof progress.percent === 'number' ? progress.percent : null
     })
   },
   beforeUnmount: function () {
+    if (this.voiceTranslationExportState === 'exporting') {
+      cancelVoiceTranslationExportRequest().catch(() => {})
+    }
     this.voiceTranslationExportProgressCleanup?.()
     this.voiceTranslationExportProgressCleanup = null
   },
@@ -1735,19 +1743,34 @@ export default defineComponent({
           translationAudioUrl: this.voiceTranslationAudioUrl,
           title: this.videoTitle,
           originalVolume: this.voiceTranslationOriginalVolume,
-          translationVolume: this.voiceTranslationTranslationVolume
+          translationVolume: this.voiceTranslationTranslationVolume,
+          limitAudio: this.limitVoiceTranslationExportAudio
         })
         if (!result.cancelled) showToast('Видео с переводом сохранено.')
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') console.error('[VOT] Video export failed', error)
-        showToast(process.env.NODE_ENV === 'development'
-          ? 'Не удалось сохранить видео с переводом. Подробнее: ' + error.code
-          : 'Не удалось сохранить видео с переводом.')
+        if (error?.code === 'cancelled') {
+          showToast(this.$t('Settings.Player Settings.Voice Translation.Export Cancelled'))
+        } else if (error?.code === 'source-download-failed') {
+          showToast(this.$t('Settings.Player Settings.Voice Translation.Source Download Failed'))
+        } else if (error?.code === 'downloader-unavailable') {
+          showToast(this.$t('Settings.Player Settings.Voice Translation.Downloader Unavailable'))
+        } else {
+          if (process.env.NODE_ENV === 'development') console.error('[VOT] Video export failed', error)
+          showToast(process.env.NODE_ENV === 'development'
+            ? 'Не удалось сохранить видео с переводом. Подробнее: ' + error.code
+            : 'Не удалось сохранить видео с переводом.')
+        }
       } finally {
         this.voiceTranslationExportState = 'idle'
         this.voiceTranslationExportStatus = null
         this.voiceTranslationExportPercent = null
       }
+    },
+
+    cancelActiveVoiceTranslationExport() {
+      if (this.voiceTranslationExportState !== 'exporting') return
+      this.voiceTranslationExportStatus = 'cancelling'
+      cancelVoiceTranslationExportRequest().catch(() => {})
     },
 
     stopVoiceTranslation: function () {
@@ -1761,7 +1784,7 @@ export default defineComponent({
         cancelVoiceTranslation(activeVideoId).catch(() => {})
       }
 
-      cancelVoiceTranslationExport().catch(() => {})
+      cancelVoiceTranslationExportRequest().catch(() => {})
       this.$refs.player?.disableVoiceTranslation()
       this.voiceTranslationAudioUrl = ''
       this.voiceTranslationState = 'idle'

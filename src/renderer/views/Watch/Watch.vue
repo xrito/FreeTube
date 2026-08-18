@@ -88,6 +88,14 @@
             >
               {{ voiceTranslationExportButtonLabel }}
             </button>
+            <button
+              v-if="voiceTranslationExportState === 'exporting'"
+              type="button"
+              :disabled="voiceTranslationExportStatus === 'cancelling'"
+              @click="cancelActiveVoiceTranslationExport"
+            >
+              {{ $t('Settings.Player Settings.Voice Translation.Cancel Export') }}
+            </button>
             <label
               v-if="voiceTranslationState === 'enabled'"
               class="voiceTranslationVolume"
@@ -115,6 +123,25 @@
                 step="1"
               >
               <output>{{ $t('Settings.Player Settings.Voice Translation.Volume Percentage', { value: voiceTranslationTranslationVolume }) }}</output>
+            </label>
+          </div>
+          <div
+            v-if="voiceTranslationExportState === 'exporting'"
+            class="voiceTranslationExportProgress"
+            aria-live="polite"
+          >
+            <span>{{ voiceTranslationExportButtonLabel }}</span>
+            <label
+              v-if="voiceTranslationExportPercent !== null"
+              class="voiceTranslationExportMeter"
+            >
+              <span>{{ $t('Settings.Player Settings.Voice Translation.Export Progress Percentage', { value: Math.round(voiceTranslationExportPercent) }) }}</span>
+              <progress
+                :value="voiceTranslationExportPercent"
+                max="100"
+              >
+                {{ $t('Settings.Player Settings.Voice Translation.Export Progress Percentage', { value: Math.round(voiceTranslationExportPercent) }) }}
+              </progress>
             </label>
           </div>
           <p v-if="voiceTranslationNotice">

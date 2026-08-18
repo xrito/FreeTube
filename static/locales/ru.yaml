@@ -405,13 +405,20 @@ Settings:
       Original Volume: Оригинальный звук
       Translation Volume: Перевод
       Volume Percentage: '{value}%'
+      Limit Export Audio: Предотвращать перегрузку звука при сохранении
       Export MKV: Сохранить MKV с переводом
       Exporting: Сохранение...
       Choose Export Location: Выберите место сохранения...
       Downloading Source: Загрузка исходного видео...
       Downloading Source Progress: 'Загрузка исходного видео: {value}%'
+      Export Progress Percentage: 'Готово: {value}%'
       Adding Translation: Добавление дорожки перевода...
       Finalizing Export: Сохранение файла...
+      Cancel Export: Отменить сохранение
+      Cancelling Export: Отмена сохранения...
+      Export Cancelled: Сохранение видео отменено.
+      Source Download Failed: Не удалось получить поток YouTube. Возможно, YouTube изменил формат или встроенный yt-dlp устарел. Обновите FreeTube VOT и повторите попытку.
+      Downloader Unavailable: Встроенный загрузчик yt-dlp недоступен. Переустановите или обновите FreeTube VOT.
       Token: Yandex OAuth token
       Save Token: Сохранить token
       Remove Token: Удалить token
