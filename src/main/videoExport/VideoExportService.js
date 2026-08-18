@@ -33,7 +33,7 @@ export class VideoExportService {
    * Downloads the public YouTube source separately from the active FreeTube
    * player. The player can use SABR, which FFmpeg cannot consume directly.
    *
-   * @param {{ videoId: string, translationAudioUrl: string, title: string }} request
+   * @param {{ videoId: string, translationAudioUrl: string, title: string, originalVolume: number, translationVolume: number }} request
    * @param {AbortSignal} signal
    * @returns {Promise<{ cancelled: boolean, filePath?: string }>}
    */
@@ -71,6 +71,8 @@ export class VideoExportService {
         ffmpegPath,
         sourcePath,
         translationAudioUrl: normalizedRequest.translationAudioUrl,
+        originalVolume: normalizedRequest.originalVolume,
+        translationVolume: normalizedRequest.translationVolume,
         outputPath: partialFilePath,
         signal
       })
@@ -153,23 +155,22 @@ async function downloadYouTubeSource({ ytDlpPath, ffmpegPath, videoId, tempDirec
   return path.join(tempDirectory, sourceEntry.name)
 }
 
-function muxVoiceTranslation({ ffmpegPath, sourcePath, translationAudioUrl, outputPath, signal }) {
+function muxVoiceTranslation({ ffmpegPath, sourcePath, translationAudioUrl, originalVolume, translationVolume, outputPath, signal }) {
   return runProcess({
     executablePath: ffmpegPath,
     args: [
       '-y',
       '-i', sourcePath,
       '-i', translationAudioUrl,
+      '-filter_complex',
+      `[0:a:0]volume=${originalVolume / 100}[original];[1:a:0]volume=${translationVolume / 100}[translation];[original][translation]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[mixed]`,
       '-map', '0:v:0',
-      '-map', '0:a:0?',
-      '-map', '1:a:0',
-      '-c', 'copy',
-      '-metadata:s:a:0', 'language=eng',
-      '-metadata:s:a:0', 'title=Original',
-      '-metadata:s:a:1', 'language=rus',
-      '-metadata:s:a:1', 'title=Russian voice translation',
-      '-disposition:a:0', '0',
-      '-disposition:a:1', 'default',
+      '-map', '[mixed]',
+      '-c:v', 'copy',
+      '-c:a', 'libopus',
+      '-metadata:s:a:0', 'language=rus',
+      '-metadata:s:a:0', 'title=Original audio with Russian voice translation',
+      '-disposition:a:0', 'default',
       outputPath
     ],
     signal,
@@ -235,12 +236,20 @@ function normalizeRequest(value) {
   const videoId = typeof request.videoId === 'string' ? request.videoId : ''
   const translationAudioUrl = typeof request.translationAudioUrl === 'string' ? request.translationAudioUrl : ''
   const title = typeof request.title === 'string' ? request.title : 'FreeTube video'
+  const originalVolume = normalizeVolume(request.originalVolume)
+  const translationVolume = normalizeVolume(request.translationVolume)
 
   if (!/^[\w-]{11}$/.test(videoId) || !translationAudioUrl.startsWith('https://')) {
     throw new VideoExportError('invalid-request', 'Invalid video export request')
   }
 
-  return { videoId, translationAudioUrl, title }
+  return { videoId, translationAudioUrl, title, originalVolume, translationVolume }
+}
+
+function normalizeVolume(value) {
+  const numberValue = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(numberValue)) return 100
+  return Math.min(100, Math.max(0, numberValue))
 }
 
 function sanitizeFilename(value) {
