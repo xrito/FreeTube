@@ -148,6 +148,20 @@ export default {
     return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_CANCEL, videoId)
   },
 
+  exportVoiceTranslationVideo: (request) => {
+    return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_EXPORT, request)
+  },
+
+  cancelVoiceTranslationExport: () => {
+    return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_EXPORT_CANCEL)
+  },
+
+  onVoiceTranslationExportProgress: (handler) => {
+    const listener = (_, progress) => handler(progress)
+    ipcRenderer.on(IpcChannels.VOICE_TRANSLATION_EXPORT_PROGRESS, listener)
+    return () => ipcRenderer.removeListener(IpcChannels.VOICE_TRANSLATION_EXPORT_PROGRESS, listener)
+  },
+
   getVoiceTranslationAccountStatus: () => {
     return ipcRenderer.invoke(IpcChannels.VOICE_TRANSLATION_ACCOUNT_STATUS)
   },

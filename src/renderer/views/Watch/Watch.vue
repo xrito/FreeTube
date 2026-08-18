@@ -80,6 +80,14 @@
             >
               {{ voiceTranslationButtonLabel }}
             </button>
+            <button
+              v-if="voiceTranslationState === 'enabled'"
+              type="button"
+              :disabled="voiceTranslationExportState === 'exporting'"
+              @click="exportVoiceTranslation"
+            >
+              {{ voiceTranslationExportButtonLabel }}
+            </button>
             <label
               v-if="voiceTranslationState === 'enabled'"
               class="voiceTranslationVolume"

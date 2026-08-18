@@ -45,6 +45,30 @@ export async function cancelVoiceTranslation(videoId) {
   }
 }
 
+export async function exportVoiceTranslationVideo(request) {
+  if (!process.env.IS_ELECTRON || !window.ftElectron?.exportVoiceTranslationVideo) {
+    throw new VoiceTranslationClientError('unsupported', 'Video export is available only in the desktop app')
+  }
+  const response = await window.ftElectron.exportVoiceTranslationVideo(request)
+  if (!response?.ok) {
+    throw new VoiceTranslationClientError(response?.error?.code ?? 'export-failed', 'Unable to export video')
+  }
+  return response.result
+}
+
+export async function cancelVoiceTranslationExport() {
+  if (process.env.IS_ELECTRON && window.ftElectron?.cancelVoiceTranslationExport) {
+    await window.ftElectron.cancelVoiceTranslationExport()
+  }
+}
+
+export function subscribeVoiceTranslationExportProgress(handler) {
+  if (!process.env.IS_ELECTRON || !window.ftElectron?.onVoiceTranslationExportProgress) {
+    return () => {}
+  }
+
+  return window.ftElectron.onVoiceTranslationExportProgress(handler)
+}
 export async function getVoiceTranslationAccountStatus() {
   if (!process.env.IS_ELECTRON || !window.ftElectron?.getVoiceTranslationAccountStatus) {
     return { available: false, hasToken: false }

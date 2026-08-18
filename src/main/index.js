@@ -32,6 +32,7 @@ import { generatePoToken } from './poTokenGenerator'
 import { isFreeTubeUrl } from './utils'
 import { VoiceTranslationError, VotTranslationService } from './voiceTranslation/VotTranslationService'
 import { VotAccountStore } from './voiceTranslation/VotAccountStore'
+import { VideoExportError, VideoExportService } from './videoExport/VideoExportService'
 
 const brotliDecompressAsync = promisify(brotliDecompress)
 
@@ -1316,6 +1317,8 @@ function runApp() {
 
   const votAccountStore = new VotAccountStore(userDataPath)
   const votTranslationService = new VotTranslationService(votAccountStore)
+  const videoExportService = new VideoExportService(dialog, app.isPackaged)
+  const activeVoiceExports = new Map()
   ipcMain.handle(IpcChannels.VOICE_TRANSLATION_ACCOUNT_STATUS, async (event) => {
     if (!isFreeTubeUrl(event.senderFrame.url)) {
       return { available: false, hasToken: false }
@@ -1393,6 +1396,32 @@ function runApp() {
         activeVoiceTranslations.delete(senderId)
       }
     }
+  })
+
+  ipcMain.handle(IpcChannels.VOICE_TRANSLATION_EXPORT, async (event, request) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) return { ok: false, error: { code: 'forbidden' } }
+    activeVoiceExports.get(event.sender.id)?.abort()
+    const controller = new AbortController()
+    activeVoiceExports.set(event.sender.id, controller)
+    try {
+      const result = await videoExportService.exportWithTranslation(request, controller.signal, (progress) => {
+        if (!event.sender.isDestroyed()) event.sender.send(IpcChannels.VOICE_TRANSLATION_EXPORT_PROGRESS, progress)
+      })
+      return { ok: true, result }
+    } catch (error) {
+      if (controller.signal.aborted || error?.code === 'cancelled') return { ok: false, error: { code: 'cancelled' } }
+      if (process.env.NODE_ENV === 'development') console.error('[VOT] Video export failed', error)
+      return { ok: false, error: { code: error instanceof VideoExportError ? error.code : 'export-failed' } }
+    } finally {
+      if (activeVoiceExports.get(event.sender.id) === controller) activeVoiceExports.delete(event.sender.id)
+    }
+  })
+
+  ipcMain.handle(IpcChannels.VOICE_TRANSLATION_EXPORT_CANCEL, (event) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) return false
+    const controller = activeVoiceExports.get(event.sender.id)
+    controller?.abort()
+    return Boolean(controller)
   })
 
   ipcMain.handle(IpcChannels.VOICE_TRANSLATION_CANCEL, (event, videoId) => {
