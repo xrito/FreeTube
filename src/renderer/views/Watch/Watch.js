@@ -374,6 +374,14 @@ export default defineComponent({
         this.$store.dispatch('updateVoiceTranslationTranslationVolume', value)
       }
     },
+    voiceTranslationExportQuality: {
+      get() {
+        return this.$store.getters.getVoiceTranslationExportQuality
+      },
+      set(value) {
+        this.$store.dispatch('updateVoiceTranslationExportQuality', value)
+      }
+    },
     limitVoiceTranslationExportAudio() {
       return this.$store.getters.getLimitVoiceTranslationExportAudio
     },
@@ -1744,7 +1752,8 @@ export default defineComponent({
           title: this.videoTitle,
           originalVolume: this.voiceTranslationOriginalVolume,
           translationVolume: this.voiceTranslationTranslationVolume,
-          limitAudio: this.limitVoiceTranslationExportAudio
+          limitAudio: this.limitVoiceTranslationExportAudio,
+          quality: this.voiceTranslationExportQuality
         })
         if (!result.cancelled) showToast('Видео с переводом сохранено.')
       } catch (error) {

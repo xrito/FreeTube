@@ -487,6 +487,9 @@ Settings:
       Original Volume: Original audio
       Translation Volume: Translation
       Volume Percentage: '{value}%'
+      Export Quality: Video quality
+      Best Available Quality: Best available
+      Export Quality Value: '{value}p'
       Limit Export Audio: Prevent clipping in exported audio
       Export MKV: Save MKV with translation
       Exporting: Saving...

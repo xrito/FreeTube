@@ -405,6 +405,9 @@ Settings:
       Original Volume: Оригинальный звук
       Translation Volume: Перевод
       Volume Percentage: '{value}%'
+      Export Quality: Качество видео
+      Best Available Quality: Лучшее доступное
+      Export Quality Value: '{value}p'
       Limit Export Audio: Предотвращать перегрузку звука при сохранении
       Export MKV: Сохранить MKV с переводом
       Exporting: Сохранение...
