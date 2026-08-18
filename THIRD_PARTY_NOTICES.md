@@ -28,3 +28,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## FFmpeg via ffmpeg-static 5.3.0
+
+The Windows installer bundles `ffmpeg.exe` obtained by `ffmpeg-static` 5.3.0.
+The package and bundled binary are GPL-3.0-or-later. The complete GPL text is
+installed alongside the executable at `resources/ffmpeg/LICENSE`.
+
+Source: https://github.com/eugeneware/ffmpeg-static
+FFmpeg source: https://ffmpeg.org/
+
+## yt-dlp 2026.07.04
+
+The Windows installer bundles the unmodified official `yt-dlp.exe` solely to
+download the user-selected public YouTube source before FFmpeg muxes the VOT
+track. It is fetched from the official release only after its SHA-256 hash is
+verified. The executable itself is not stored in this repository.
+
+Source: https://github.com/yt-dlp/yt-dlp
+License: The Unlicense (public domain). See https://unlicense.org/

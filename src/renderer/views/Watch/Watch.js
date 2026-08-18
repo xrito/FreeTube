@@ -40,7 +40,7 @@ import {
 } from '../../helpers/api/invidious'
 import { sortCaptions } from '../../helpers/player/utils'
 import { MANIFEST_TYPE_SABR } from '../../helpers/player/SabrManifestParser'
-import { cancelVoiceTranslation, translateVoiceVideo } from '../../services/voiceTranslation'
+import { cancelVoiceTranslation, cancelVoiceTranslationExport, exportVoiceTranslationVideo, subscribeVoiceTranslationExportProgress, translateVoiceVideo } from '../../services/voiceTranslation'
 import { useI18n } from 'vue-i18n'
 
 /**
@@ -183,6 +183,11 @@ export default defineComponent({
       voiceTranslationRequestId: 0,
       voiceTranslationRequestVideoId: null,
       voiceTranslationStatusTimeout: null,
+      voiceTranslationAudioUrl: '',
+      voiceTranslationExportState: 'idle',
+      voiceTranslationExportStatus: null,
+      voiceTranslationExportPercent: null,
+      voiceTranslationExportProgressCleanup: null,
     }
   },
   computed: {
@@ -373,6 +378,26 @@ export default defineComponent({
       return this.voiceTranslationState === 'preparing' || this.voiceTranslationState === 'generating' ||
         this.voiceTranslationState === 'loading-audio'
     },
+    voiceTranslationExportButtonLabel() {
+      if (this.voiceTranslationExportState !== 'exporting') {
+        return this.$t('Settings.Player Settings.Voice Translation.Export MKV')
+      }
+
+      switch (this.voiceTranslationExportStatus) {
+        case 'choosing-location':
+          return this.$t('Settings.Player Settings.Voice Translation.Choose Export Location')
+        case 'downloading-source':
+          return this.voiceTranslationExportPercent === null
+            ? this.$t('Settings.Player Settings.Voice Translation.Downloading Source')
+            : this.$t('Settings.Player Settings.Voice Translation.Downloading Source Progress', { value: Math.round(this.voiceTranslationExportPercent) })
+        case 'adding-translation':
+          return this.$t('Settings.Player Settings.Voice Translation.Adding Translation')
+        case 'finishing':
+          return this.$t('Settings.Player Settings.Voice Translation.Finalizing Export')
+        default:
+          return this.$t('Settings.Player Settings.Voice Translation.Exporting')
+      }
+    },
     voiceTranslationButtonLabel() {
       switch (this.voiceTranslationState) {
         case 'preparing':
@@ -407,6 +432,15 @@ export default defineComponent({
 
     this.checkIfTimestamp()
     this.currentPlaybackRate = this.$store.getters.getDefaultPlayback
+    this.voiceTranslationExportProgressCleanup = subscribeVoiceTranslationExportProgress((progress) => {
+      if (progress?.videoId !== this.videoId || this.voiceTranslationExportState !== 'exporting') return
+      this.voiceTranslationExportStatus = progress.stage
+      this.voiceTranslationExportPercent = typeof progress.percent === 'number' ? progress.percent : null
+    })
+  },
+  beforeUnmount: function () {
+    this.voiceTranslationExportProgressCleanup?.()
+    this.voiceTranslationExportProgressCleanup = null
   },
   mounted: function () {
     this.onMountedDependOnLocalStateLoading()
@@ -1664,6 +1698,7 @@ export default defineComponent({
 
         if (this.voiceTranslationRequestId === requestId && this.videoId === videoId) {
           this.voiceTranslationState = 'enabled'
+          this.voiceTranslationAudioUrl = translation.audioUrl
           this.voiceTranslationRequestVideoId = null
           this.voiceTranslationNotice = voiceMode === 'live' && translation.voiceMode !== 'live'
             ? this.$t('Settings.Player Settings.Voice Translation.Live Fallback')
@@ -1689,6 +1724,26 @@ export default defineComponent({
       }
     },
 
+    async exportVoiceTranslation() {
+      if (!this.voiceTranslationAudioUrl || !this.videoId || this.voiceTranslationExportState === 'exporting') return
+      this.voiceTranslationExportState = 'exporting'
+      this.voiceTranslationExportStatus = 'choosing-location'
+      this.voiceTranslationExportPercent = null
+      try {
+        const result = await exportVoiceTranslationVideo({ videoId: this.videoId, translationAudioUrl: this.voiceTranslationAudioUrl, title: this.videoTitle })
+        if (!result.cancelled) showToast('Видео с переводом сохранено.')
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') console.error('[VOT] Video export failed', error)
+        showToast(process.env.NODE_ENV === 'development'
+          ? 'Не удалось сохранить видео с переводом. Подробнее: ' + error.code
+          : 'Не удалось сохранить видео с переводом.')
+      } finally {
+        this.voiceTranslationExportState = 'idle'
+        this.voiceTranslationExportStatus = null
+        this.voiceTranslationExportPercent = null
+      }
+    },
+
     stopVoiceTranslation: function () {
       const activeVideoId = this.voiceTranslationRequestVideoId
       this.voiceTranslationRequestId += 1
@@ -1700,7 +1755,9 @@ export default defineComponent({
         cancelVoiceTranslation(activeVideoId).catch(() => {})
       }
 
+      cancelVoiceTranslationExport().catch(() => {})
       this.$refs.player?.disableVoiceTranslation()
+      this.voiceTranslationAudioUrl = ''
       this.voiceTranslationState = 'idle'
       this.voiceTranslationError = ''
       this.voiceTranslationNotice = ''
