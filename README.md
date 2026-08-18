@@ -2,6 +2,20 @@
  <img alt="" src="/_icons/logoColor.svg" width=500 align="center">
 </p>
 
+## FreeTube VOT — unofficial Windows fork
+
+> [!WARNING]
+> Experimental community build. This repository is **not** an official FreeTube, Yandex, YouTube, or Voice Over Translation product.
+
+This fork adds a focused Voice Over Translation proof of concept for YouTube videos:
+
+- English → Russian voice translation with standard voices and optional Live voices.
+- Synchronized original and translated audio, including seek and playback-rate changes.
+- Per-track volume controls and an optional peak limiter for exported audio.
+- Export of an MKV with original and translated audio mixed together.
+
+See [release notes](docs/release-notes/v0.25.2-vot.1.md) for installation, limitations, privacy guidance, and release checksums. Never share Yandex OAuth tokens, cookies, or signed media URLs in Issues. This fork currently targets Windows and YouTube only.
+
 FreeTube is an open source desktop YouTube player built with privacy in mind.
 Use YouTube without advertisements and prevent Google from tracking you with their cookies and JavaScript.
 Available for Windows (10 and later), Mac (macOS 12 and later) & Linux thanks to Electron.
