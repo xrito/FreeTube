@@ -4,7 +4,8 @@ const windowsVoiceExportResources = process.platform === 'win32'
   ? [
       { from: 'node_modules/ffmpeg-static/ffmpeg.exe', to: 'ffmpeg/ffmpeg.exe' },
       { from: 'node_modules/ffmpeg-static/LICENSE', to: 'ffmpeg/LICENSE' },
-      { from: '.cache/freetube/yt-dlp/yt-dlp.exe', to: 'yt-dlp/yt-dlp.exe' }
+      { from: '.cache/freetube/yt-dlp/yt-dlp.exe', to: 'yt-dlp/yt-dlp.exe' },
+      { from: '.cache/freetube/node/node.exe', to: 'node/node.exe' }
     ]
   : []
 /** @type {import('electron-builder').Configuration} */

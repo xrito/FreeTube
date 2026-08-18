@@ -88,6 +88,24 @@
             >
               {{ voiceTranslationExportButtonLabel }}
             </button>
+            <label
+              v-if="voiceTranslationState === 'enabled'"
+              class="voiceTranslationExportQuality"
+            >
+              {{ $t('Settings.Player Settings.Voice Translation.Export Quality') }}
+              <select
+                v-model="voiceTranslationExportQuality"
+                :disabled="voiceTranslationExportState === 'exporting'"
+              >
+                <option value="best">{{ $t('Settings.Player Settings.Voice Translation.Best Available Quality') }}</option>
+                <option value="2160">{{ $t('Settings.Player Settings.Voice Translation.Export Quality Value', { value: 2160 }) }}</option>
+                <option value="1440">{{ $t('Settings.Player Settings.Voice Translation.Export Quality Value', { value: 1440 }) }}</option>
+                <option value="1080">{{ $t('Settings.Player Settings.Voice Translation.Export Quality Value', { value: 1080 }) }}</option>
+                <option value="720">{{ $t('Settings.Player Settings.Voice Translation.Export Quality Value', { value: 720 }) }}</option>
+                <option value="480">{{ $t('Settings.Player Settings.Voice Translation.Export Quality Value', { value: 480 }) }}</option>
+                <option value="360">{{ $t('Settings.Player Settings.Voice Translation.Export Quality Value', { value: 360 }) }}</option>
+              </select>
+            </label>
             <button
               v-if="voiceTranslationExportState === 'exporting'"
               type="button"

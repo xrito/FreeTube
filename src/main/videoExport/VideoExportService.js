@@ -6,6 +6,7 @@ import path from 'node:path'
 import { tmpdir } from 'node:os'
 
 const MIN_BINARY_SIZE = 1024 * 1024
+const EXPORT_QUALITY_VALUES = new Set(['best', '2160', '1440', '1080', '720', '480', '360'])
 
 export class VideoExportError extends Error {
   /**
@@ -33,7 +34,7 @@ export class VideoExportService {
    * Downloads the public YouTube source separately from the active FreeTube
    * player. The player can use SABR, which FFmpeg cannot consume directly.
    *
-   * @param {{ videoId: string, translationAudioUrl: string, title: string, originalVolume: number, translationVolume: number, limitAudio: boolean }} request
+   * @param {{ videoId: string, translationAudioUrl: string, title: string, originalVolume: number, translationVolume: number, limitAudio: boolean, quality: string }} request
    * @param {AbortSignal} signal
    * @returns {Promise<{ cancelled: boolean, filePath?: string }>}
    */
@@ -50,9 +51,10 @@ export class VideoExportService {
     }
 
     onProgress({ videoId: normalizedRequest.videoId, stage: 'downloading-source' })
-    const [ffmpegPath, ytDlpPath] = await Promise.all([
+    const [ffmpegPath, ytDlpPath, nodeRuntimePath] = await Promise.all([
       getFfmpegPath(this.isPackaged),
-      getYtDlpPath(this.isPackaged)
+      getYtDlpPath(this.isPackaged),
+      getNodeRuntimePath(this.isPackaged)
     ])
     const tempDirectory = await fs.mkdtemp(path.join(tmpdir(), 'freetube-vot-export-'))
     const partialFilePath = `${result.filePath}.partial-${randomUUID()}.mkv`
@@ -62,6 +64,8 @@ export class VideoExportService {
         ytDlpPath,
         ffmpegPath,
         videoId: normalizedRequest.videoId,
+        quality: normalizedRequest.quality,
+        nodeRuntimePath,
         tempDirectory,
         signal,
         onProgress
@@ -105,6 +109,13 @@ async function getYtDlpPath(isPackaged) {
   return getUsableBinary(ytDlpPath, 'downloader-unavailable', 'The YouTube downloader is unavailable in this build')
 }
 
+async function getNodeRuntimePath(isPackaged) {
+  if (!isPackaged) return 'node'
+
+  const nodeRuntimePath = path.join(process.resourcesPath, 'node', 'node.exe')
+  return getUsableBinary(nodeRuntimePath, 'downloader-unavailable', 'The JavaScript runtime is unavailable in this build')
+}
+
 async function getUsableBinary(binaryPath, code, message) {
   try {
     const binaryStats = await fs.stat(binaryPath)
@@ -116,23 +127,24 @@ async function getUsableBinary(binaryPath, code, message) {
   throw new VideoExportError(code, message)
 }
 
-async function downloadYouTubeSource({ ytDlpPath, ffmpegPath, videoId, tempDirectory, signal, onProgress }) {
+async function downloadYouTubeSource({ ytDlpPath, ffmpegPath, nodeRuntimePath, videoId, quality, tempDirectory, signal, onProgress }) {
   const outputTemplate = path.join(tempDirectory, 'source.%(ext)s')
   const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`
 
   await runProcess({
     executablePath: ytDlpPath,
     args: [
+      '--ignore-config',
       '--no-playlist',
       '--no-part',
       '--newline',
       '--no-write-info-json',
       '--no-write-thumbnail',
-      '--extractor-args', 'youtube:player_client=android',
       '--socket-timeout', '30',
       '--retries', '2',
       '--ffmpeg-location', path.dirname(ffmpegPath),
-      '--format', 'bv*+ba/b',
+      ...createYouTubeAccessArguments(nodeRuntimePath),
+      '--format', createYouTubeFormatSelector(quality),
       '--merge-output-format', 'mkv',
       '--remux-video', 'mkv',
       '--output', outputTemplate,
@@ -240,12 +252,39 @@ function normalizeRequest(value) {
   const originalVolume = normalizeVolume(request.originalVolume)
   const translationVolume = normalizeVolume(request.translationVolume)
   const limitAudio = request.limitAudio !== false
+  const quality = normalizeExportQuality(request.quality)
 
   if (!/^[\w-]{11}$/.test(videoId) || !translationAudioUrl.startsWith('https://')) {
     throw new VideoExportError('invalid-request', 'Invalid video export request')
   }
 
-  return { videoId, translationAudioUrl, title, originalVolume, translationVolume, limitAudio }
+  return { videoId, translationAudioUrl, title, originalVolume, translationVolume, limitAudio, quality }
+}
+
+function normalizeExportQuality(value) {
+  return typeof value === 'string' && EXPORT_QUALITY_VALUES.has(value) ? value : '1080'
+}
+
+export function createYouTubeFormatSelector(quality) {
+  const normalizedQuality = normalizeExportQuality(quality)
+  if (normalizedQuality === 'best') return 'bv*+ba/b'
+
+  return `bv*[height<=${normalizedQuality}]+ba/b[height<=${normalizedQuality}]`
+}
+
+/**
+ * Uses yt-dlp's JavaScript solver with its browser-safe embedded YouTube
+ * client. The solver is retrieved only from yt-dlp's official EJS release.
+ *
+ * @param {string} nodeRuntimePath
+ * @returns {string[]}
+ */
+export function createYouTubeAccessArguments(nodeRuntimePath = 'node') {
+  return [
+    '--remote-components', 'ejs:github',
+    '--js-runtimes', `node:${nodeRuntimePath}`,
+    '--extractor-args', 'youtube:player_client=web_embedded'
+  ]
 }
 
 export function createVoiceTranslationMixFilter(originalVolume, translationVolume, limitAudio = true) {

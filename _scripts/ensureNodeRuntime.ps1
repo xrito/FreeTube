@@ -10,11 +10,14 @@ function Get-Sha256([string] $filePath) {
 }
 $ErrorActionPreference = 'Stop'
 
-$version = '2026.08.18.122307'
-$sha256 = '652e154bce7170070d0f26415c9a3c35c121f5a7903cb8cde6d31c4577517fb9'
-$downloadUrl = "https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/download/$version/yt-dlp.exe"
-$outputDirectory = Join-Path $PSScriptRoot '..\.cache\freetube\yt-dlp'
-$outputPath = Join-Path $outputDirectory 'yt-dlp.exe'
+# yt-dlp's official EJS solver requires Node.js 22 or newer. The runtime is
+# bundled only in the Windows installer, so an installed app never needs a
+# global Node.js installation to export a video.
+$version = '22.22.0'
+$sha256 = 'bae898add4643fcf890a83ad8ae56e20dce7e781cab161a53991ceba70c99ffb'
+$downloadUrl = "https://nodejs.org/dist/v$version/win-x64/node.exe"
+$outputDirectory = Join-Path $PSScriptRoot '..\.cache\freetube\node'
+$outputPath = Join-Path $outputDirectory 'node.exe'
 
 if (Test-Path -LiteralPath $outputPath) {
   $actualHash = Get-Sha256 $outputPath

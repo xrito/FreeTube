@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import ffmpegPath from 'ffmpeg-static'
 
-import { createVoiceTranslationMixFilter } from '../src/main/videoExport/VideoExportService.js'
+import { createVoiceTranslationMixFilter, createYouTubeAccessArguments, createYouTubeFormatSelector } from '../src/main/videoExport/VideoExportService.js'
 
 const temporaryDirectory = await fs.mkdtemp(path.join(tmpdir(), `freetube-vot-export-test-${randomUUID()}-`))
 const sourcePath = path.join(temporaryDirectory, 'source.mkv')
@@ -16,6 +16,20 @@ try {
   const filter = createVoiceTranslationMixFilter(15, 100, true)
   if (!filter.includes('volume=0.15') || !filter.includes('volume=1') || !filter.includes('amix=inputs=2') || !filter.includes('alimiter=limit=0.95:level=false')) {
     throw new Error(`Unexpected audio mix filter: ${filter}`)
+  }
+
+  if (createYouTubeFormatSelector('1080') !== 'bv*[height<=1080]+ba/b[height<=1080]' || createYouTubeFormatSelector('best') !== 'bv*+ba/b' || createYouTubeFormatSelector('invalid') !== 'bv*[height<=1080]+ba/b[height<=1080]') {
+    throw new Error('Unexpected YouTube video quality selector')
+  }
+
+  const accessArguments = createYouTubeAccessArguments('C:\\Program Files\\FreeTube VOT\\resources\\node\\node.exe')
+  const expectedAccessArguments = [
+    '--remote-components', 'ejs:github',
+    '--js-runtimes', 'node:C:\\Program Files\\FreeTube VOT\\resources\\node\\node.exe',
+    '--extractor-args', 'youtube:player_client=web_embedded'
+  ]
+  if (JSON.stringify(accessArguments) !== JSON.stringify(expectedAccessArguments)) {
+    throw new Error('Unexpected YouTube EJS access arguments')
   }
 
   await runFfmpeg([
