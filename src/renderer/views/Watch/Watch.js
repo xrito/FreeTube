@@ -1730,7 +1730,13 @@ export default defineComponent({
       this.voiceTranslationExportStatus = 'choosing-location'
       this.voiceTranslationExportPercent = null
       try {
-        const result = await exportVoiceTranslationVideo({ videoId: this.videoId, translationAudioUrl: this.voiceTranslationAudioUrl, title: this.videoTitle })
+        const result = await exportVoiceTranslationVideo({
+          videoId: this.videoId,
+          translationAudioUrl: this.voiceTranslationAudioUrl,
+          title: this.videoTitle,
+          originalVolume: this.voiceTranslationOriginalVolume,
+          translationVolume: this.voiceTranslationTranslationVolume
+        })
         if (!result.cancelled) showToast('Видео с переводом сохранено.')
       } catch (error) {
         if (process.env.NODE_ENV === 'development') console.error('[VOT] Video export failed', error)
