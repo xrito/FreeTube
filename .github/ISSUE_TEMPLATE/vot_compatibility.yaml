@@ -1,0 +1,61 @@
+name: VOT compatibility report
+description: Report whether voice translation or export works for a YouTube video
+title: '[Compatibility]: '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing FreeTube VOT. Do not paste OAuth tokens, cookies, signed media URLs, or private videos.
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I tested the latest FreeTube VOT release or the latest development build.
+          required: true
+        - label: This report does not contain tokens, cookies, or signed media URLs.
+          required: true
+  - type: input
+    id: video-id
+    attributes:
+      label: YouTube video ID
+      description: Prefer the 11-character ID instead of the full URL.
+      placeholder: dQw4w9WgXcQ
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Voice mode
+      options:
+        - Standard voices
+        - Live voices
+    validations:
+      required: true
+  - type: dropdown
+    id: translation-result
+    attributes:
+      label: Translation result
+      options:
+        - Translation played and stayed synchronized
+        - Translation was created but did not play
+        - Translation request failed
+        - Video is not supported by VOT
+    validations:
+      required: true
+  - type: dropdown
+    id: export-result
+    attributes:
+      label: MKV export result
+      options:
+        - Not tested
+        - Export succeeded
+        - Export cancelled
+        - Source download failed
+        - Audio mix or output file is incorrect
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Include FreeTube VOT version, Windows version, selected audio levels, and a redacted error code if one was shown.
