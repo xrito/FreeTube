@@ -291,6 +291,13 @@
           @change="updateVoiceTranslationTranslationVolume"
         />
       </FtFlexBox>
+      <FtFlexBox>
+        <FtToggleSwitch
+          :label="t('Settings.Player Settings.Voice Translation.Limit Export Audio')"
+          :default-value="limitVoiceTranslationExportAudio"
+          @change="updateLimitVoiceTranslationExportAudio"
+        />
+      </FtFlexBox>
       <p>
         {{ t('Settings.Player Settings.Voice Translation.Token Hint') }}
       </p>
@@ -745,6 +752,7 @@ const voiceTranslationVoiceModeNames = computed(() => [
 const voiceTranslationVoiceMode = computed(() => store.getters.getVoiceTranslationVoiceMode)
 const voiceTranslationOriginalVolume = computed(() => store.getters.getVoiceTranslationOriginalVolume)
 const voiceTranslationTranslationVolume = computed(() => store.getters.getVoiceTranslationTranslationVolume)
+const limitVoiceTranslationExportAudio = computed(() => store.getters.getLimitVoiceTranslationExportAudio)
 const yandexOAuthToken = ref('')
 const hasYandexOAuthToken = ref(false)
 const yandexCredentialStorageAvailable = ref(false)
@@ -769,6 +777,13 @@ function updateVoiceTranslationOriginalVolume(value) {
  */
 function updateVoiceTranslationTranslationVolume(value) {
   store.dispatch('updateVoiceTranslationTranslationVolume', value)
+}
+
+/**
+ * @param {boolean} value
+ */
+function updateLimitVoiceTranslationExportAudio(value) {
+  store.dispatch('updateLimitVoiceTranslationExportAudio', value)
 }
 
 async function refreshYandexOAuthTokenStatus() {
