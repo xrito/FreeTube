@@ -19,7 +19,8 @@ $outputPath = Join-Path $outputDirectory 'yt-dlp.exe'
 if (Test-Path -LiteralPath $outputPath) {
   $actualHash = Get-Sha256 $outputPath
   if ($actualHash -eq $sha256) {
-    exit 0
+    Write-Output "Dependency is already prepared."
+    return
   }
 }
 
@@ -31,11 +32,11 @@ try {
   Start-BitsTransfer -Source $downloadUrl -Destination $temporaryPath
   $actualHash = Get-Sha256 $temporaryPath
   if ($actualHash -ne $sha256) {
-    throw 'The downloaded yt-dlp.exe checksum does not match the pinned release.'
+    throw "The downloaded file checksum does not match the pinned release."
   }
 
   Move-Item -LiteralPath $temporaryPath -Destination $outputPath -Force
-  Write-Output "Prepared yt-dlp $version for Windows export."
+  Write-Output "Prepared export dependency $version."
 } catch {
   Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
   throw
