@@ -123,6 +123,35 @@
           :input-html="comment.text"
           @timestamp-event="onTimestamp"
         />
+        <div
+          v-if="comment.dataType === 'local'"
+          class="commentTranslation"
+        >
+          <button
+            type="button"
+            class="commentTranslateButton"
+            :disabled="comment.translationState === 'loading'"
+            :aria-busy="comment.translationState === 'loading'"
+            @click="toggleCommentTranslation(comment)"
+          >
+            {{ commentTranslationButtonText(comment) }}
+          </button>
+          <p
+            v-if="comment.translationVisible && comment.translatedText"
+            class="commentTranslatedText"
+            dir="auto"
+            aria-live="polite"
+          >
+            {{ comment.translatedText }}
+          </p>
+          <p
+            v-else-if="comment.translationState === 'error'"
+            class="commentTranslationError"
+            role="alert"
+          >
+            {{ $t('Comments.Comment translation failed') }}
+          </p>
+        </div>
         <p class="commentLikeCount">
           <template
             v-if="!hideCommentLikes"
@@ -238,6 +267,35 @@
               :input-html="reply.text"
               @timestamp-event="onTimestamp"
             />
+            <div
+              v-if="reply.dataType === 'local'"
+              class="commentTranslation"
+            >
+              <button
+                type="button"
+                class="commentTranslateButton"
+                :disabled="reply.translationState === 'loading'"
+                :aria-busy="reply.translationState === 'loading'"
+                @click="toggleCommentTranslation(reply)"
+              >
+                {{ commentTranslationButtonText(reply) }}
+              </button>
+              <p
+                v-if="reply.translationVisible && reply.translatedText"
+                class="commentTranslatedText"
+                dir="auto"
+                aria-live="polite"
+              >
+                {{ reply.translatedText }}
+              </p>
+              <p
+                v-else-if="reply.translationState === 'error'"
+                class="commentTranslationError"
+                role="alert"
+              >
+                {{ $t('Comments.Comment translation failed') }}
+              </p>
+            </div>
             <p class="commentLikeCount">
               <template
                 v-if="!hideCommentLikes"
@@ -402,6 +460,15 @@ const commentData = ref([])
 /** @type {import('youtubei.js').YT.Comments | undefined} */
 let localCommentsInstance
 
+const COMMENT_TRANSLATION_TARGET_LANGUAGE = 'ru'
+
+/** @type {Map<string, import('youtubei.js').YTNodes.CommentView>} */
+const localCommentSources = new Map()
+
+/** @type {Map<string, number>} */
+const commentTranslationRequests = new Map()
+let nextCommentTranslationRequestId = 0
+
 /** @type {import('vue').ComputedRef<'local' | 'invidious'>} */
 const backendPreference = computed(() => {
   return store.getters.getBackendPreference
@@ -548,6 +615,78 @@ async function getMoreComments() {
 }
 
 /** @typedef {import('../../helpers/api/local').LocalComment | import('../../helpers/api/invidious').InvidiousComment} Comment */
+
+/**
+ * @param {Comment} comment
+ * @returns {string}
+ */
+function commentTranslationButtonText(comment) {
+  if (comment.translationState === 'loading') {
+    return t('Comments.Translating comment')
+  }
+
+  if (comment.translatedText) {
+    return comment.translationVisible
+      ? t('Comments.Hide translation')
+      : t('Comments.Show translation')
+  }
+
+  if (comment.translationState === 'error') {
+    return t('Comments.Retry translation')
+  }
+
+  return t('Comments.Translate comment')
+}
+
+/**
+ * @param {Comment} comment
+ */
+async function toggleCommentTranslation(comment) {
+  if (comment.translationState === 'loading') return
+
+  if (comment.translatedText) {
+    comment.translationVisible = !comment.translationVisible
+    return
+  }
+
+  const sourceComment = localCommentSources.get(comment.id)
+  if (!sourceComment) {
+    comment.translationState = 'error'
+    return
+  }
+
+  const requestId = ++nextCommentTranslationRequestId
+  const requestedVideoId = props.id
+  commentTranslationRequests.set(comment.id, requestId)
+  comment.translationState = 'loading'
+  comment.translationVisible = false
+
+  try {
+    const result = await sourceComment.translate(COMMENT_TRANSLATION_TARGET_LANGUAGE)
+
+    if (commentTranslationRequests.get(comment.id) !== requestId || props.id !== requestedVideoId) return
+
+    const translatedText = result?.content?.trim()
+    if (!translatedText) {
+      throw new Error('YouTube returned an empty comment translation')
+    }
+
+    comment.translatedText = translatedText
+    comment.translationVisible = true
+    comment.translationState = 'translated'
+  } catch (error) {
+    if (commentTranslationRequests.get(comment.id) !== requestId || props.id !== requestedVideoId) return
+
+    console.error(`Failed to translate comment ${comment.id}`, error)
+    comment.translationState = 'error'
+    comment.translationVisible = false
+  } finally {
+    if (commentTranslationRequests.get(comment.id) === requestId) {
+      commentTranslationRequests.delete(comment.id)
+    }
+  }
+}
+
 /**
  * @param {Comment} comment
  */
@@ -603,6 +742,17 @@ async function getCommentReplies(index) {
 const replyTokens = new Map()
 
 /**
+ * @param {import('youtubei.js').YTNodes.CommentView} comment
+ * @param {import('youtubei.js').YTNodes.CommentThread | undefined} commentThread
+ * @returns {import('../../helpers/api/local').LocalComment}
+ */
+function parseLocalCommentWithSource(comment, commentThread = undefined) {
+  const parsedComment = parseLocalComment(comment, commentThread)
+  localCommentSources.set(parsedComment.id, comment)
+  return parsedComment
+}
+
+/**
  * @param {boolean | undefined} more
  */
 async function getCommentDataLocal(more = false) {
@@ -626,10 +776,15 @@ async function getCommentDataLocal(more = false) {
       }
     }
 
+    if (!more) {
+      localCommentSources.clear()
+      commentTranslationRequests.clear()
+    }
+
     const parsedComments = comments.contents
       .map(commentThread => {
         // Use destructuring to create a new object without the replyToken
-        const { replyToken, ...comment } = parseLocalComment(commentThread.comment, commentThread)
+        const { replyToken, ...comment } = parseLocalCommentWithSource(commentThread.comment, commentThread)
 
         if (comment.hasReplyToken) {
           replyTokens.set(comment.id, replyToken)
@@ -700,10 +855,10 @@ async function getCommentRepliesLocal(index) {
 
     if (comment.replies.length > 0) {
       await commentThread.getContinuation()
-      comment.replies = comment.replies.concat(commentThread.replies.map(reply => parseLocalComment(reply)))
+      comment.replies = comment.replies.concat(commentThread.replies.map(reply => parseLocalCommentWithSource(reply)))
     } else {
       await commentThread.getReplies()
-      comment.replies = commentThread.replies.map(reply => parseLocalComment(reply))
+      comment.replies = commentThread.replies.map(reply => parseLocalCommentWithSource(reply))
     }
 
     if (commentThread.has_continuation) {
