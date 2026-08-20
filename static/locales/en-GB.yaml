@@ -591,6 +591,12 @@ Settings:
     Proxy Protocol: Proxy Protocol
     Enable Tor / Proxy: Enable Tor / Proxy
     Proxy Settings: Proxy
+    Enable NoDPI: Enable built-in NoDPI (Windows)
+    NoDPI Description: Experimental. Starts a local proxy used only by FreeTube. It does not change Windows system proxy settings.
+    NoDPI Starting: Starting NoDPI…
+    NoDPI Active: NoDPI is active for FreeTube traffic only.
+    NoDPI Unavailable: NoDPI is unavailable in this build or on this platform.
+    NoDPI Failed: Could not start NoDPI. FreeTube returned to the direct connection.
     Proxy Warning: FreeTube doesn't have a built-in proxy but can connect to an external proxy, such as one running on your machine like Tor or an external proxy such-as a SOCKS5 proxy provided by some VPNs. If enabled, make sure your proxy/Tor is configured properly, or FreeTube won't be able to fetch any data.
     Proxy Username: Proxy Username
     Proxy Password: Proxy Password

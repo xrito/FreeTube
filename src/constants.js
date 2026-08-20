@@ -2,6 +2,10 @@
 const IpcChannels = {
   ENABLE_PROXY: 'enable-proxy',
   DISABLE_PROXY: 'disable-proxy',
+  NODPI_ENABLE: 'nodpi-enable',
+  NODPI_DISABLE: 'nodpi-disable',
+  NODPI_STATUS: 'nodpi-status',
+  NODPI_STATUS_CHANGED: 'nodpi-status-changed',
   GET_SYSTEM_LOCALE: 'get-system-locale',
   GET_NAVIGATION_HISTORY: 'get-navigation-history',
   IS_WAYLAND_PLATFORM: 'is-wayland-platform',

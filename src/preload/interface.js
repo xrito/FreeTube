@@ -57,6 +57,24 @@ export default {
     ipcRenderer.send(IpcChannels.DISABLE_PROXY)
   },
 
+  enableNoDpi: () => {
+    return ipcRenderer.invoke(IpcChannels.NODPI_ENABLE)
+  },
+
+  disableNoDpi: () => {
+    return ipcRenderer.invoke(IpcChannels.NODPI_DISABLE)
+  },
+
+  getNoDpiStatus: () => {
+    return ipcRenderer.invoke(IpcChannels.NODPI_STATUS)
+  },
+
+  onNoDpiStatusChanged: (handler) => {
+    const listener = (_, status) => handler(status)
+    ipcRenderer.on(IpcChannels.NODPI_STATUS_CHANGED, listener)
+    return () => ipcRenderer.removeListener(IpcChannels.NODPI_STATUS_CHANGED, listener)
+  },
+
   /**
    * @param {string} authorization
    * @param {string} url

@@ -24,10 +24,12 @@ export class VideoExportService {
   /**
    * @param {import('electron').Dialog} dialog
    * @param {boolean} isPackaged
+   * @param {() => string | undefined} getNoDpiProxyUrl
    */
-  constructor(dialog, isPackaged) {
+  constructor(dialog, isPackaged, getNoDpiProxyUrl = () => undefined) {
     this.dialog = dialog
     this.isPackaged = isPackaged
+    this.getNoDpiProxyUrl = getNoDpiProxyUrl
   }
 
   /**
@@ -67,6 +69,7 @@ export class VideoExportService {
         quality: normalizedRequest.quality,
         nodeRuntimePath,
         tempDirectory,
+        proxyUrl: this.getNoDpiProxyUrl(),
         signal,
         onProgress
       })
@@ -127,7 +130,7 @@ async function getUsableBinary(binaryPath, code, message) {
   throw new VideoExportError(code, message)
 }
 
-async function downloadYouTubeSource({ ytDlpPath, ffmpegPath, nodeRuntimePath, videoId, quality, tempDirectory, signal, onProgress }) {
+async function downloadYouTubeSource({ ytDlpPath, ffmpegPath, nodeRuntimePath, videoId, quality, tempDirectory, proxyUrl, signal, onProgress }) {
   const outputTemplate = path.join(tempDirectory, 'source.%(ext)s')
   const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`
 
@@ -140,6 +143,7 @@ async function downloadYouTubeSource({ ytDlpPath, ffmpegPath, nodeRuntimePath, v
       '--newline',
       '--no-write-info-json',
       '--no-write-thumbnail',
+      ...createYtDlpProxyArguments(proxyUrl),
       '--socket-timeout', '30',
       '--retries', '2',
       '--ffmpeg-location', path.dirname(ffmpegPath),
@@ -285,6 +289,14 @@ export function createYouTubeAccessArguments(nodeRuntimePath = 'node') {
     '--js-runtimes', `node:${nodeRuntimePath}`,
     '--extractor-args', 'youtube:player_client=web_embedded'
   ]
+}
+
+export function createYtDlpProxyArguments(proxyUrl) {
+  if (typeof proxyUrl !== 'string' || !/^http:\/\/127\.0\.0\.1:\d+$/.test(proxyUrl)) {
+    return []
+  }
+
+  return ['--proxy', proxyUrl]
 }
 
 export function createVoiceTranslationMixFilter(originalVolume, translationVolume, limitAudio = true) {
