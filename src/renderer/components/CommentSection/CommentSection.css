@@ -106,6 +106,46 @@
 }
 /* stylelint-enable liberty/use-logical-spec */
 
+
+.commentTranslation {
+  margin-block: 4px 8px;
+  margin-inline-start: 70px;
+  font-size: 12px;
+}
+
+.commentTranslateButton {
+  padding: 0;
+  border: 0;
+  color: var(--title-color);
+  background: none;
+  font: inherit;
+  text-align: start;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.commentTranslateButton:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.commentTranslatedText,
+.commentTranslationError {
+  margin-block: 6px 0;
+  white-space: pre-wrap;
+  font-size: 14px;
+  overflow-wrap: break-word;
+}
+
+.commentTranslatedText {
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid var(--secondary-card-bg-color);
+}
+
+.commentTranslationError {
+  color: var(--red-500);
+}
+
 .commentPinned {
   font-weight: normal;
   font-size: 12px;

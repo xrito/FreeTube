@@ -13,5 +13,8 @@ allowBuilds:
 overrides:
   uuid@<11.1.1: '>=11.1.1'
 
+patchedDependencies:
+  youtubei.js@17.2.0: patches/youtubei.js@17.2.0.patch
+
 minimumReleaseAgeExclude:
   - "youtubei.js"

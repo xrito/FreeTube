@@ -912,6 +912,12 @@ Comments:
   Member: Участник
   View {replyCount} replies: Смотреть 1 ответ | Смотреть {replyCount} ответа(ов)
   Hearted: С сердечком
+  Translate comment: Перевести
+  Translating comment: Перевод...
+  Show translation: Показать перевод
+  Hide translation: Скрыть перевод
+  Retry translation: Повторить перевод
+  Comment translation failed: Не удалось перевести комментарий.
   Subscribed: Подписан(а)
   There are no comments available for this post: Для этой записи нет доступных комментариев
   Hide {replyCount} replies: Скрыть 1 ответ | Скрыть {replyCount} ответа(ов)

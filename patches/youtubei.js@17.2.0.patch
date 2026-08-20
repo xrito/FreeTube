@@ -1,0 +1,22 @@
+diff --git a/dist/src/parser/classes/comments/CommentView.js b/dist/src/parser/classes/comments/CommentView.js
+--- a/dist/src/parser/classes/comments/CommentView.js
++++ b/dist/src/parser/classes/comments/CommentView.js
+@@ -78,10 +78,16 @@ export default class CommentView extends YTNode {
+                     a11y: comment.author.A11y
+                 };
+             }
++            let thumbs = comment.avatar?.image;
++            if (!thumbs && 'avatarThumbnailUrl' in comment.author) {
++                thumbs = {
++                    thumbnails: [{ url: comment.author.avatarThumbnailUrl, width: 88, height: 88 }]
++                };
++            }
+             this.author = new Author({
+                 simpleText: comment.author.displayName,
+-                navigationEndpoint: comment.avatar.endpoint
+-            }, comment.author, comment.avatar.image, comment.author.channelId);
++                navigationEndpoint: comment.avatar?.endpoint || comment.author?.channelCommand
++            }, comment.author, thumbs, comment.author.channelId);
+         }
+         if (toolbar_state) {
+             this.is_hearted = toolbar_state.heartState === 'TOOLBAR_HEART_STATE_HEARTED';
