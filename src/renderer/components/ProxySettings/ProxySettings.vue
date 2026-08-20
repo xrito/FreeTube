@@ -2,6 +2,44 @@
   <FtSettingsSection
     :title="$t('Settings.Proxy Settings.Proxy Settings')"
   >
+    <div class="nodpi-block">
+      <p class="nodpi-description">
+        {{ $t('Settings.Proxy Settings.NoDPI Description') }}
+      </p>
+      <FtFlexBox class="settingsFlexStart500px">
+        <FtToggleSwitch
+          :label="$t('Settings.Proxy Settings.Enable NoDPI')"
+          :default-value="noDpiRuntimeEnabled"
+          :disabled="noDpiLoading || !noDpiAvailable"
+          @change="handleUpdateNoDpi"
+        />
+      </FtFlexBox>
+      <p
+        v-if="noDpiLoading"
+        class="center"
+      >
+        {{ $t('Settings.Proxy Settings.NoDPI Starting') }}
+      </p>
+      <p
+        v-else-if="noDpiRuntimeEnabled"
+        class="nodpi-active"
+      >
+        {{ $t('Settings.Proxy Settings.NoDPI Active') }}
+      </p>
+      <p
+        v-else-if="!noDpiAvailable"
+        class="proxy-warning"
+      >
+        {{ $t('Settings.Proxy Settings.NoDPI Unavailable') }}
+      </p>
+      <p
+        v-if="noDpiError"
+        class="proxy-warning"
+      >
+        {{ noDpiError }}
+      </p>
+    </div>
+    <div class="proxy-separator" />
     <FtFlexBox class="settingsFlexStart500px">
       <p
         v-if="useProxy"
@@ -16,6 +54,7 @@
       <FtToggleSwitch
         :label="$t('Settings.Proxy Settings.Enable Tor / Proxy')"
         :default-value="useProxy"
+        :disabled="noDpiRuntimeEnabled || noDpiLoading"
         @change="handleUpdateProxy"
       />
     </FtFlexBox>
@@ -113,7 +152,7 @@
 
 <script setup>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import FtSettingsSection from '../FtSettingsSection/FtSettingsSection.vue'
@@ -150,6 +189,16 @@ const proxyIp = ref('')
 const proxyCountry = ref('')
 const proxyRegion = ref('')
 const proxyCity = ref('')
+const noDpiLoading = ref(false)
+const noDpiAvailable = ref(Boolean(process.env.IS_ELECTRON))
+const noDpiRuntimeEnabled = ref(false)
+const noDpiError = ref('')
+let removeNoDpiStatusListener
+
+/** @type {import('vue').ComputedRef<boolean>} */
+const noDpiEnabled = computed(() => {
+  return store.getters.getNoDpiEnabled
+})
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const useProxy = computed(() => {
@@ -209,17 +258,123 @@ const areCredentialsSupported = computed(() => {
   return proxyProtocol.value === 'http' || proxyProtocol.value === 'https'
 })
 
+function applyNoDpiStatus(status) {
+  noDpiAvailable.value = Boolean(status?.available)
+  noDpiRuntimeEnabled.value = Boolean(status?.enabled)
+  noDpiError.value = status?.errorCode
+    ? getNoDpiErrorMessage(status.errorCode)
+    : ''
+}
+
+function getNoDpiErrorMessage(code) {
+  if (code === 'unsupported-platform' || code === 'dependency-unavailable') {
+    return t('Settings.Proxy Settings.NoDPI Unavailable')
+  }
+
+  return t('Settings.Proxy Settings.NoDPI Failed')
+}
+
+function handleNoDpiStatusChanged(status) {
+  applyNoDpiStatus(status)
+  if (!status?.enabled && noDpiEnabled.value) {
+    store.dispatch('updateNoDpiEnabled', false)
+  }
+}
+
+onMounted(async () => {
+  if (!process.env.IS_ELECTRON) {
+    noDpiAvailable.value = false
+    return
+  }
+
+  removeNoDpiStatusListener = window.ftElectron.onNoDpiStatusChanged(handleNoDpiStatusChanged)
+
+  try {
+    const status = await window.ftElectron.getNoDpiStatus()
+    applyNoDpiStatus(status)
+
+    if (status.enabled && useProxy.value) {
+      await store.dispatch('updateUseProxy', false)
+    }
+    if (noDpiEnabled.value !== Boolean(status.enabled)) {
+      await store.dispatch('updateNoDpiEnabled', Boolean(status.enabled))
+    }
+  } catch (error) {
+    noDpiAvailable.value = false
+    noDpiRuntimeEnabled.value = false
+    noDpiError.value = t('Settings.Proxy Settings.NoDPI Failed')
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[NoDPI] Failed to read status', error)
+    }
+  }
+})
+
 /**
  * @param {boolean} enabled
  */
-function handleUpdateProxy(enabled) {
+async function handleUpdateNoDpi(enabled) {
+  if (!process.env.IS_ELECTRON || noDpiLoading.value) return
+
+  noDpiLoading.value = true
+  noDpiError.value = ''
+
+  try {
+    if (enabled && useProxy.value) {
+      disableProxy()
+      await store.dispatch('updateUseProxy', false)
+    }
+
+    const result = enabled
+      ? await window.ftElectron.enableNoDpi()
+      : await window.ftElectron.disableNoDpi()
+
+    if (!result?.ok) {
+      throw Object.assign(new Error('NoDPI operation failed'), {
+        code: result?.error?.code
+      })
+    }
+
+    applyNoDpiStatus(result.status)
+    await store.dispatch('updateNoDpiEnabled', Boolean(result.status?.enabled))
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[NoDPI] Failed to update state', error)
+    }
+
+    noDpiRuntimeEnabled.value = false
+    if (error?.code === 'unsupported-platform' || error?.code === 'dependency-unavailable') {
+      noDpiAvailable.value = false
+    }
+    noDpiError.value = getNoDpiErrorMessage(error?.code)
+    showToast(noDpiError.value)
+    await store.dispatch('updateNoDpiEnabled', false)
+  } finally {
+    noDpiLoading.value = false
+  }
+}
+/**
+ * @param {boolean} enabled
+ */
+async function handleUpdateProxy(enabled) {
+  if (enabled && noDpiRuntimeEnabled.value && process.env.IS_ELECTRON) {
+    const result = await window.ftElectron.disableNoDpi()
+    if (!result?.ok) {
+      noDpiError.value = t('Settings.Proxy Settings.NoDPI Failed')
+      showToast(noDpiError.value)
+      return
+    }
+
+    applyNoDpiStatus(result.status)
+    await store.dispatch('updateNoDpiEnabled', false)
+  }
+
   if (enabled) {
     enableProxy()
   } else {
     disableProxy()
   }
 
-  store.dispatch('updateUseProxy', enabled)
+  await store.dispatch('updateUseProxy', enabled)
 }
 
 /**
@@ -245,6 +400,8 @@ function handleUpdateProxyHostname(value) {
 }
 
 onBeforeUnmount(() => {
+  removeNoDpiStatusListener?.()
+  removeNoDpiStatusListener = undefined
   if (proxyHostname.value === '') {
     store.dispatch('updateProxyHostname', '127.0.0.1')
   }

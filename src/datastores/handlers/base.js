@@ -71,6 +71,7 @@ class Settings {
       _id: {
         $in: [
           'disableSmoothScrolling',
+          'noDpiEnabled',
           'useProxy',
           'proxyProtocol',
           'proxyHostname',

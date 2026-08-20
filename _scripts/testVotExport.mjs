@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import ffmpegPath from 'ffmpeg-static'
 
-import { createVoiceTranslationMixFilter, createYouTubeAccessArguments, createYouTubeFormatSelector } from '../src/main/videoExport/VideoExportService.js'
+import { createVoiceTranslationMixFilter, createYouTubeAccessArguments, createYouTubeFormatSelector, createYtDlpProxyArguments } from '../src/main/videoExport/VideoExportService.js'
 
 const temporaryDirectory = await fs.mkdtemp(path.join(tmpdir(), `freetube-vot-export-test-${randomUUID()}-`))
 const sourcePath = path.join(temporaryDirectory, 'source.mkv')
@@ -30,6 +30,11 @@ try {
   ]
   if (JSON.stringify(accessArguments) !== JSON.stringify(expectedAccessArguments)) {
     throw new Error('Unexpected YouTube EJS access arguments')
+  }
+
+  const proxyArguments = createYtDlpProxyArguments('http://127.0.0.1:49152')
+  if (JSON.stringify(proxyArguments) !== JSON.stringify(['--proxy', 'http://127.0.0.1:49152']) || createYtDlpProxyArguments('http://example.com:8881').length !== 0) {
+    throw new Error('Unexpected yt-dlp NoDPI proxy arguments')
   }
 
   await runFfmpeg([

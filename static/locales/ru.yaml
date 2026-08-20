@@ -594,6 +594,12 @@ Settings:
     Ip: Ip
     Enable Tor / Proxy: Включить Tor/Прокси
     Proxy Settings: Прокси
+    Enable NoDPI: Включить встроенный NoDPI (Windows)
+    NoDPI Description: Экспериментально. Запускает локальный прокси только для FreeTube и не меняет системные настройки прокси Windows.
+    NoDPI Starting: Запуск NoDPI…
+    NoDPI Active: NoDPI активен только для трафика FreeTube.
+    NoDPI Unavailable: NoDPI недоступен в этой сборке или на этой платформе.
+    NoDPI Failed: Не удалось запустить NoDPI. FreeTube вернулся к прямому подключению.
     Proxy Warning: FreeTube не имеет встроенного прокси, но может подключаться к внешнему прокси, например, к запущенному на вашей машине Tor или к внешнему прокси, например, SOCKS5, предоставляемому некоторыми VPN. Если он включен, убедитесь, что Ваш прокси/Tor настроен правильно, иначе FreeTube не сможет получить данные.
     Proxy Username: Имя пользователя прокси
     Proxy Password: Пароль прокси

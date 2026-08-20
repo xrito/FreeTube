@@ -33,6 +33,7 @@ import { isFreeTubeUrl } from './utils'
 import { VoiceTranslationError, VotTranslationService } from './voiceTranslation/VotTranslationService'
 import { VotAccountStore } from './voiceTranslation/VotAccountStore'
 import { VideoExportError, VideoExportService } from './videoExport/VideoExportService'
+import { NoDpiError, NoDpiService } from './noDpi/NoDpiService'
 
 const brotliDecompressAsync = promisify(brotliDecompress)
 
@@ -385,6 +386,49 @@ function runApp() {
   }
 
   let proxyUrl
+  const noDpiService = new NoDpiService(app.isPackaged, {
+    onUnexpectedExit: details => {
+      handleNoDpiUnexpectedExit(details).catch(error => {
+        console.error('[NoDPI] Failed to recover from an unexpected exit', error)
+      })
+    }
+  })
+
+  async function applySessionProxy(nextProxyUrl) {
+    await session.defaultSession.setProxy(nextProxyUrl
+      ? { proxyRules: nextProxyUrl }
+      : {})
+    proxyUrl = nextProxyUrl
+    await session.defaultSession.closeAllConnections()
+  }
+  async function stopNoDpiAndClearSessionProxy() {
+    const noDpiProxyUrl = noDpiService.getProxyUrl()
+    await noDpiService.stop()
+    if (noDpiProxyUrl && proxyUrl === noDpiProxyUrl) {
+      await applySessionProxy(undefined)
+    }
+  }
+
+  function broadcastNoDpiStatus(status) {
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (isFreeTubeUrl(window.webContents.getURL())) {
+        window.webContents.send(IpcChannels.NODPI_STATUS_CHANGED, status)
+      }
+    }
+  }
+
+  async function handleNoDpiUnexpectedExit({ proxyUrl: stoppedProxyUrl, exitCode }) {
+    if (proxyUrl === stoppedProxyUrl) {
+      await applySessionProxy(undefined)
+    }
+    await baseHandlers.settings.upsert('noDpiEnabled', false)
+    const status = await noDpiService.getStatus()
+    broadcastNoDpiStatus(status)
+
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[NoDPI] Process exited unexpectedly with code ${exitCode ?? 'unknown'}`)
+    }
+  }
 
   app.on('ready', async (_, __) => {
     if (process.platform === 'darwin') {
@@ -500,6 +544,7 @@ function runApp() {
     }
 
     let disableSmoothScrolling = false
+    let noDpiEnabled = false
     let useProxy = false
     let proxyProtocol = 'socks5'
     let proxyHostname = '127.0.0.1'
@@ -510,6 +555,9 @@ function runApp() {
         switch (doc._id) {
           case 'disableSmoothScrolling':
             disableSmoothScrolling = doc.value
+            break
+          case 'noDpiEnabled':
+            noDpiEnabled = doc.value
             break
           case 'useProxy':
             useProxy = doc.value
@@ -544,12 +592,26 @@ function runApp() {
       app.commandLine.appendSwitch('enable-smooth-scrolling')
     }
 
-    if (useProxy) {
-      proxyUrl = `${proxyProtocol}://${proxyHostname}:${proxyPort}`
-
-      session.defaultSession.setProxy({
-        proxyRules: proxyUrl
-      })
+    if (noDpiEnabled) {
+      try {
+        await noDpiService.start()
+        await applySessionProxy(noDpiService.getProxyUrl())
+        if (useProxy) {
+          await baseHandlers.settings.upsert('useProxy', false)
+        }
+      } catch (error) {
+        await stopNoDpiAndClearSessionProxy().catch(cleanupError => {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[NoDPI] Failed to clean up after startup error', cleanupError)
+          }
+        })
+        await baseHandlers.settings.upsert('noDpiEnabled', false)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[NoDPI] Failed to start from saved settings', error)
+        }
+      }
+    } else if (useProxy) {
+      await applySessionProxy(`${proxyProtocol}://${proxyHostname}:${proxyPort}`)
     }
 
     const fixedUserAgent = session.defaultSession.getUserAgent()
@@ -1317,8 +1379,58 @@ function runApp() {
 
   const votAccountStore = new VotAccountStore(userDataPath)
   const votTranslationService = new VotTranslationService(votAccountStore)
-  const videoExportService = new VideoExportService(dialog, app.isPackaged)
+  const videoExportService = new VideoExportService(dialog, app.isPackaged, () => noDpiService.getProxyUrl())
   const activeVoiceExports = new Map()
+
+  ipcMain.handle(IpcChannels.NODPI_STATUS, async (event) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) {
+      return { available: false, enabled: false }
+    }
+
+    return noDpiService.getStatus()
+  })
+
+  ipcMain.handle(IpcChannels.NODPI_ENABLE, async (event) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) {
+      return { ok: false, error: { code: 'forbidden' } }
+    }
+
+    try {
+      const status = await noDpiService.start()
+      await applySessionProxy(noDpiService.getProxyUrl())
+      await baseHandlers.settings.upsert('useProxy', false)
+      broadcastNoDpiStatus(status)
+      return { ok: true, status }
+    } catch (error) {
+      await stopNoDpiAndClearSessionProxy().catch(cleanupError => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[NoDPI] Failed to clean up after enable error', cleanupError)
+        }
+      })
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[NoDPI] Failed to enable', error)
+      }
+
+      return {
+        ok: false,
+        error: {
+          code: error instanceof NoDpiError ? error.code : 'start-failed'
+        }
+      }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.NODPI_DISABLE, async (event) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) {
+      return { ok: false, error: { code: 'forbidden' } }
+    }
+
+    await stopNoDpiAndClearSessionProxy()
+    const status = await noDpiService.getStatus()
+    broadcastNoDpiStatus(status)
+    return { ok: true, status }
+  })
+
   ipcMain.handle(IpcChannels.VOICE_TRANSLATION_ACCOUNT_STATUS, async (event) => {
     if (!isFreeTubeUrl(event.senderFrame.url)) {
       return { available: false, hasToken: false }
@@ -1438,26 +1550,39 @@ function runApp() {
     return true
   })
 
-  ipcMain.on(IpcChannels.ENABLE_PROXY, (event, url) => {
+  ipcMain.on(IpcChannels.ENABLE_PROXY, async (event, url) => {
     if (!isFreeTubeUrl(event.senderFrame.url)) {
       return
     }
 
-    session.defaultSession.setProxy({
-      proxyRules: url
-    })
-    proxyUrl = url
-    session.defaultSession.closeAllConnections()
+    try {
+      if (noDpiService.getProxyUrl()) {
+        await noDpiService.stop()
+        await baseHandlers.settings.upsert('noDpiEnabled', false)
+        broadcastNoDpiStatus(await noDpiService.getStatus())
+      }
+      await applySessionProxy(url)
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Proxy] Failed to enable custom proxy', error)
+      }
+    }
   })
 
-  ipcMain.on(IpcChannels.DISABLE_PROXY, (event) => {
+  ipcMain.on(IpcChannels.DISABLE_PROXY, async (event) => {
     if (!isFreeTubeUrl(event.senderFrame.url)) {
       return
     }
 
-    session.defaultSession.setProxy({})
-    proxyUrl = undefined
-    session.defaultSession.closeAllConnections()
+    if (noDpiService.getProxyUrl()) return
+
+    try {
+      await applySessionProxy(undefined)
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Proxy] Failed to disable custom proxy', error)
+      }
+    }
   })
 
   // #region navigation history
@@ -2315,6 +2440,7 @@ function runApp() {
     }
 
     await Promise.allSettled([
+      noDpiService.stop(),
       baseHandlers.compactAllDatastores(),
       session.defaultSession.clearCache(),
       session.defaultSession.clearStorageData({

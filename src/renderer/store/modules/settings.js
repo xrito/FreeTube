@@ -238,6 +238,7 @@ const state = {
   onlyShowLatestFromChannelNumber: 1,
   openDeepLinksInNewWindow: false,
   playNextVideo: false,
+  noDpiEnabled: false,
   proxyHostname: '127.0.0.1',
   proxyPort: '9050',
   proxyUsername: '',
@@ -432,6 +433,7 @@ const settingsWithSideEffects = Object.keys(sideEffectHandlers)
 export const NON_TRANSFERABLE_SETTINGS = new Set([
   /* Depends on process.env.IS_ELECTRON */
   // ProxySettings
+  'noDpiEnabled',
   'useProxy',
   'proxyProtocol',
   'proxyHostname',
