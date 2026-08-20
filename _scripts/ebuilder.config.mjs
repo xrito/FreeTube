@@ -5,7 +5,10 @@ const windowsVoiceExportResources = process.platform === 'win32'
       { from: 'node_modules/ffmpeg-static/ffmpeg.exe', to: 'ffmpeg/ffmpeg.exe' },
       { from: 'node_modules/ffmpeg-static/LICENSE', to: 'ffmpeg/LICENSE' },
       { from: '.cache/freetube/yt-dlp/yt-dlp.exe', to: 'yt-dlp/yt-dlp.exe' },
-      { from: '.cache/freetube/node/node.exe', to: 'node/node.exe' }
+      { from: '.cache/freetube/node/node.exe', to: 'node/node.exe' },
+      { from: '.cache/freetube/nodpi/nodpi.exe', to: 'nodpi/nodpi.exe' },
+      { from: '.cache/freetube/nodpi/blacklist.txt', to: 'nodpi/blacklist.txt' },
+      { from: '.cache/freetube/nodpi/LICENSE', to: 'nodpi/LICENSE' }
     ]
   : []
 /** @type {import('electron-builder').Configuration} */

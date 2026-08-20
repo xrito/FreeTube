@@ -77,3 +77,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+## NoDPI 2.2
+
+The Windows build downloads and bundles the unmodified official portable
+`nodpi.exe` together with its YouTube-oriented blacklist. FreeTube starts it
+only when the user explicitly enables the NoDPI setting, binds it to the local
+loopback interface, and uses it only as an application-scoped HTTP(S) proxy.
+The archive and extracted files are accepted only after SHA-256 verification.
+The complete GPL text is installed at `resources/nodpi/LICENSE`.
+
+Source: https://github.com/GVCoder09/NoDPI
+Release: https://github.com/GVCoder09/NoDPI/releases/tag/v2.2
+License: GPL-3.0
